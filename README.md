@@ -91,10 +91,10 @@ Any mod project can use the bridge to test itself: install the bridge in the pro
 that profile through GABS, and drive the game with the tools here. A mod can also add its own tools with
 `[BridgeTool]` (see [TOOLS.md](TOOLS.md)), without a reference to this project.
 
-### Suggested companion: Mod Performance Monitor (optional)
+### Suggested companion: ValPerfMonitor (optional)
 
 ValBridge works on its own and doesn't need any other mod. If you also test performance, it pairs well with
-[Mod Performance Monitor](https://github.com/skatefast29/ModPerfMonitor), which measures what each installed mod and
+[ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor), which measures what each installed mod and
 each part of Valheim costs: CPU time, memory allocations, load times and network. With both in the same
 profile, the monitor adds its own `perf/*` tools to the bridge, so an agent can run a whole measurement without
 anyone at the keyboard: get into the world, clear creatures, run the monitor's test suite or a live A/B test of a change,
