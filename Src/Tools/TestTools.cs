@@ -34,7 +34,7 @@ namespace ValBridgeServer.Tools
             return Execute(parsed, "inline");
         }
 
-        [Tool("test/run_file", Description = "Run a saved test script from BepInEx\\ValBridge\\tests (name with or without .json), or from a full path. The scripts that come with the bridge (enter-world, smoke, bridge-1.3) work in any profile.")]
+        [Tool("test/run_file", Description = "Run a saved test script from BepInEx\\ValBridge\\tests (name with or without .json), or from a full path. The scripts that come with the bridge (enter-world, quick-check, inventory-items-console, world-controls) work in any profile.")]
         public object RunFile(
             [ToolParameter(Description = "File name in the tests folder, or a full path")] string name)
         {

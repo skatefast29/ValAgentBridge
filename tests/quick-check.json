@@ -1,5 +1,5 @@
 {
-  "name": "smoke",
+  "name": "quick-check",
   "steps": [
     { "note": "Bridge answers and the player is in a world" },
     { "call": "world/status", "expect": [ { "path": "phase", "equals": "in_world" } ] },

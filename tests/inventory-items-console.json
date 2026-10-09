@@ -1,5 +1,5 @@
 {
-  "name": "bridge-1.3",
+  "name": "inventory-items-console",
   "stopOnFail": false,
   "steps": [
     { "note": "Needs the player in a world" },

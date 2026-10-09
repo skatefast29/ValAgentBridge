@@ -24,8 +24,8 @@ Machine-specific notes (profiles, other projects, the user's preferences) go in 
 - Test in game: `games_start valheim` (optionally `profile`). In a heavily modded profile the bridge only comes up
   ~40 s after launch, so `games_start` answers `started_bridge_pending`: then call `games_connect` with `timeout` 120.
   Then at once `world/enter` (GABS `timeout` 300, 700 with `create`; `character`/`world`/`create` for a specific or
-  new one): it waits for the menu, loads and returns once in the world. Then `test/run_file` (e.g. `bridge-1.4`,
-  `bridge-1.3`, `smoke`). Read `logs/read` or `LogOutput.log` afterwards.
+  new one): it waits for the menu, loads and returns once in the world. Then `test/run_file` (e.g. `world-controls`,
+  `inventory-items-console`, `quick-check`). Read `logs/read` or `LogOutput.log` afterwards.
 - Unsure of a tool's name or arguments: `games_tool_names` (`brief`) / `games_tool_detail`, don't guess. A wrong
   argument name gets an error listing the right ones.
 - Something seems stuck: `world/status` (`frameAgeMs`, `secondsInPhase`, `popup`, `hint`). Hints come after no frame

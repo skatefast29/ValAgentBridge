@@ -96,9 +96,9 @@ profile):
 | Script | What |
 |---|---|
 | `enter-world` | Same as `world/enter`: waits for the main menu, loads the last world, waits until in it |
-| `smoke` | Quick check that the bridge answers in a world; reads only, changes nothing |
-| `bridge-1.3` | Wider check of the 1.3 tools; sets health to 15 for a second, then restores it (run it somewhere safe) |
-| `bridge-1.4` | Check of the 1.4 tools: spawns and removes Greylings, pins and releases time and weather, teleports in place, turns the player, presses Scroll Lock, saves; puts everything back |
+| `quick-check` | Quick check that the bridge answers in a world; reads only, changes nothing |
+| `inventory-items-console` | Inventory and backpacks, refusing cheat console commands, item lookups, errors for missing arguments, health events; sets health to 15 for a second, then restores it (run it somewhere safe) |
+| `world-controls` | World and player controls: spawns and removes Greylings, pins and releases time and weather, teleports in place, turns the player, presses Scroll Lock, saves; puts everything back |
 
 ## Project layout
 

@@ -1,5 +1,5 @@
 {
-  "name": "bridge-1.4",
+  "name": "world-controls",
   "stopOnFail": false,
   "screenshotOnFail": false,
   "clearHostiles": 40,

@@ -2,6 +2,12 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## Unreleased
+- Bundled test scripts named after what they check: `smoke` is now `quick-check`, `bridge-1.3` is
+  `inventory-items-console`, `bridge-1.4` is `world-controls` (`enter-world` is unchanged).
+- Their checks hold up in any profile: a harmless cheat command (`tod -1`) for the refusal check, and no
+  comparison of max health, which drifts as food wears off.
+
 ## 1.4.1
 - `player/look_at_position` and `player/look_at_object` now really turn the player (they set a look direction the
   game overwrote on the next frame); they share the turning code with `player/look_direction`.

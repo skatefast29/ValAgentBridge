@@ -107,7 +107,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 
 `test/run` takes a script inline (a JSON object, or the same as a string), `test/run_file` reads
 `BepInEx\ValBridge\tests\<name>.json` (the files in `tests\` are copied there on deploy and also built into the
-bridge, so `enter-world`, `smoke`, `bridge-1.3` and `bridge-1.4` work in any profile), `test/list_files` lists them and the
+bridge, so `enter-world`, `quick-check`, `inventory-items-console` and `world-controls` work in any profile), `test/list_files` lists them and the
 latest results.
 
 ```json
