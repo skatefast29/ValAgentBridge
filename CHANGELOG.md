@@ -3,8 +3,8 @@
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
 ## 1.4.2
-- README: use a test world and test character; how cheat commands are handled and that you can tell the agent not to
-  use them.
+- README: opens with what the mod is for (automating and monitoring mod testing); how cheat commands are handled;
+  install from a release.
 - Bundled test scripts named after what they check: `smoke` is now `quick-check`, `bridge-1.3` is
   `inventory-items-console`, `bridge-1.4` is `world-controls` (`enter-world` is unchanged).
 - Their checks hold up in any profile: a harmless cheat command (`tod -1`) for the refusal check, and no

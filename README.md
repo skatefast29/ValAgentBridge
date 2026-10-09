@@ -1,19 +1,24 @@
 # ValBridge
 
-A BepInEx mod that lets an AI agent (through the GABS MCP server) see and drive a running Valheim: get from game
-start into a world in one call, read the player's state and inventory, move, fight, teleport, press keys, spawn
-and clear creatures, set time of day and weather, take screenshots, read the log and on-screen messages, read and
-change other mods' settings, inspect and watch live game and mod code, and run scripted tests with pass/fail
-reports. It also reports when the game looks stuck (no frames, a popup waiting, a load that doesn't finish).
+ValBridge was made to help with modding Valheim: it lets an AI agent automate and monitor the testing of mods.
+Instead of launching the game, loading a world and checking things by hand after every change, you ask the agent
+(Claude Code, through the GABS MCP server) and it does it in the running game: starts it, gets into a world, tries
+things out, runs scripted tests with pass/fail reports, and watches the log, on-screen messages and the mods
+themselves while it does.
 
-It is a **development tool** for testing mods. Several tools are cheats (giving items, spawning, changing live
-values), so install it only in a separate mod-manager profile, never in one you play, and use a **test world and
-test character**: the agent changes things in the world while it tests. Started any way other than through GABS it
-stays completely off, so it can stay installed in a profile used for performance measurements.
+What the agent can do through it:
 
-Cheat console commands are refused unless the agent passes `allowCheats` or devcommands is already on (some mods,
-such as Server Devcommands, can turn it on automatically). If you don't want the agent to use cheats at all, tell
-it so.
+- **Get in and around:** from game start into a world in one call, move, turn, teleport, press keys, use the UI.
+- **Set up a test:** give items, spawn and clear creatures, set time of day and weather, change live values and
+  other mods' settings.
+- **Check results:** read the player's state and inventory, take screenshots, read the log and on-screen messages,
+  inspect live game and mod code, and watch methods as they're called.
+- **Run test scripts:** steps, waits and checks in a JSON file, with a report of what passed, failed, warned or
+  errored meanwhile.
+- **Notice problems:** it reports when the game looks stuck (no frames, a popup waiting, a load that doesn't finish).
+
+Cheat console commands only run when the agent asks for them (`allowCheats`) or devcommands is already on; tell the
+agent if you don't want it to use them.
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) (MIT, see [LICENSE](LICENSE)),
 rebuilt for Valheim 1.0 on Windows and extended. What changed is in [CHANGELOG.md](CHANGELOG.md).
@@ -25,7 +30,7 @@ AI agent (Claude Code) --MCP--> GABS --GABP (TCP, localhost)--> ValBridge inside
 ```
 
 [GABS](https://github.com/pardeike/GABS) starts the game with a port and token in the environment; ValBridge reads
-them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manager), ValBridge stays off.
+them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manager), ValBridge does nothing: no patches, no listener, no per-frame work.
 
 ## Requirements
 
@@ -37,7 +42,7 @@ them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manage
 ## Install from a release
 
 Download `ValBridge-<version>.zip` from the [releases page](https://github.com/skatefast29/ValBridge/releases) and
-copy its `BepInEx\plugins\ValBridge` folder into a test profile's `BepInEx\plugins` folder (your mod manager can open
+copy its `BepInEx\plugins\ValBridge` folder into a profile's `BepInEx\plugins` folder (your mod manager can open
 the profile's folder), with the game closed. The profile also needs ValheimModding-JsonDotNET. Then set up GABS as described under [Using it](#using-it).
 
 ## Build and install
@@ -61,8 +66,6 @@ Another profile, and taking it out again (game closed):
 dotnet build -c Release -p:Deploy=true -p:GaleProfile="%APPDATA%\com.kesomannen.gale\valheim\profiles\Performance Test"
 dotnet build -t:Undeploy -p:GaleProfile="%APPDATA%\com.kesomannen.gale\valheim\profiles\Performance Test"
 ```
-
-Installed but started normally (not by GABS), the bridge does nothing: no patches, no listener, no per-frame work.
 
 ## Using it
 
@@ -89,7 +92,7 @@ that profile through GABS, and drive the game with the tools here. A mod can als
 
 ValBridge works on its own and doesn't need any other mod. If you also test performance, it pairs well with
 [Mod Performance Monitor](https://github.com/skatefast29/ModPerfMonitor), which measures what each installed mod and
-each part of Valheim costs: CPU time, memory allocations, load times and network. With both in the same test
+each part of Valheim costs: CPU time, memory allocations, load times and network. With both in the same
 profile, the monitor adds its own `perf/*` tools to the bridge, so an agent can run a whole measurement without
 anyone at the keyboard: get into the world, clear creatures, run the monitor's test suite or a live A/B test of a change,
 and read the results (`perf/start_suite`, `perf/results`, `perf/ab_test`, `perf/load_times`, `perf/objects` and
