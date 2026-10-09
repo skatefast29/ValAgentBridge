@@ -8,27 +8,17 @@ themselves while it does.
 
 What the agent can do through it:
 
-- **Get into the game:** from game start into a world in one call (it can also create a character or world), load
-  another world, save, log out.
-- **Move the character:** walk in a direction, walk to a spot (finding a path), jump, turn and look at things,
-  teleport.
-- **Act like a player:** attack and block, interact with whatever it's looking at (doors, chests, stations), pick up
-  and drop items, equip items, eat and drink, craft, repair, build and remove building pieces, press any key, click
-  buttons in menus.
-- **Run console commands:** anything the game's console (and mods' commands) can do, with the console's output
-  returned, e.g. `tod`, `heal`, `god`, `spawn`.
-- **Set up a test:** give items, spawn creatures, clear away the enemies around the player, set the time of day
-  and the weather, set health, switch god and ghost mode, slow down, speed up or pause the game (single player),
-  change other mods' settings and live game values.
-- **Look things up:** the player's health, stamina, food and status effects, inventory (backpacks too), what's
-  nearby or on screen, where locations such as boss altars are, item stats and recipes, game objects and their
-  parts.
-- **Check results:** take screenshots, read the game log, on-screen messages and player events (death, health
-  changes), inspect live game and mod code, call methods, and watch methods as they're called.
-- **Run test scripts:** steps, waits and checks in a JSON file, with a report of what passed, failed, warned or
-  errored meanwhile.
-- **Notice problems:** it reports when the game looks stuck (no frames, a popup waiting, a load that doesn't finish).
-- **Work with other mods:** list installed mods and their settings, and use commands other mods add to the bridge.
+- **Game:** enter a world in one call, create characters and worlds, load, save, log out
+- **Movement:** walk, pathfind, jump, look, teleport
+- **Player actions:** attack, block, interact, pick up, drop, equip, eat, craft, repair, build, press keys, click menus
+- **Console commands:** any game or mod command, with its output
+- **Test setup:** give items, spawn creatures, clear enemies, time, weather, health, god/ghost mode, game speed, mod
+  settings, live values
+- **Lookups:** player state, inventory and backpacks, nearby objects, locations, items and recipes
+- **Monitoring:** screenshots, log, on-screen messages, player events, live code inspection, method watches
+- **Test scripts:** JSON steps and checks with pass/fail reports
+- **Stuck detection:** no frames, waiting popups, stalled loads
+- **Other mods:** list mods and settings, use commands they add
 
 Cheat console commands only run when the agent asks for them (`allowCheats`) or devcommands is already on; tell the
 agent if you don't want it to use them.
