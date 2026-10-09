@@ -1,0 +1,13 @@
+{
+  "name": "smoke",
+  "steps": [
+    { "note": "Bridge answers and the player is in a world" },
+    { "call": "world/status", "expect": [ { "path": "phase", "equals": "in_world" } ] },
+    { "call": "player/get_health", "expect": [ { "path": "maxHealth", "greaterThan": 0 } ], "saveAs": "hp" },
+    { "call": "logs/mark" },
+    { "call": "mods/list", "args": { "filter": "ValBridge" }, "expect": [ { "path": "count", "equals": 1 } ] },
+    { "call": "time/status", "expect": [ { "path": "paused", "equals": false } ] },
+    { "call": "ui/messages", "args": { "limit": 5 } },
+    { "screenshot": true, "maxWidth": 960 }
+  ]
+}

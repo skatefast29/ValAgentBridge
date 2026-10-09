@@ -1,0 +1,35 @@
+{
+  "name": "bridge-1.3",
+  "stopOnFail": false,
+  "steps": [
+    { "note": "Needs the player in a world" },
+    { "call": "world/status", "expect": [ { "path": "phase", "equals": "in_world" } ] },
+
+    { "note": "Inventory shows weight, carry limit and backpack contents" },
+    { "call": "player/get_inventory", "expect": [ { "path": "carryLimit", "greaterThan": 0 }, { "path": "backpacks", "exists": true } ] },
+
+    { "note": "Cheat console commands are refused without allowCheats; normal ones return console output" },
+    { "call": "console/run_command", "args": { "command": "spawn Wood 1" }, "allowFail": true,
+      "expect": [ { "path": "success", "equals": false }, { "path": "error", "contains": "cheat" } ] },
+    { "call": "console/run_command", "args": { "command": "help" }, "expect": [ { "path": "output", "exists": true } ] },
+
+    { "note": "Item lookups" },
+    { "call": "items/find", "args": { "type": "Consumable", "sortBy": "health", "limit": 3 }, "expect": [ { "path": "shown", "equals": 3 } ] },
+    { "call": "items/info", "args": { "name": "MooseKebab" }, "expect": [ { "path": "summary.food.health", "equals": 110 } ] },
+    { "call": "items/info", "args": { "name": "NoSuchThing" }, "allowFail": true, "expect": [ { "path": "success", "equals": false } ] },
+
+    { "note": "Bad or missing arguments give a clear error instead of crashing" },
+    { "call": "player/find_nearby_prefabs", "args": {}, "allowFail": true, "expect": [ { "path": "error", "contains": "prefabName" } ] },
+    { "call": "player/pickup_nearby", "args": {}, "allowFail": true, "expect": [ { "path": "error", "contains": "which item" } ] },
+    { "call": "player/pickup_nearby", "args": { "itemName": "NoSuchThing" }, "expect": [ { "path": "pickedUpCount", "equals": 0 } ] },
+
+    { "note": "Health change is recorded as an event: health set to 15 for about a second, then put back (do this somewhere safe)" },
+    { "call": "events/read", "saveAs": "ev" },
+    { "call": "player/get_health", "saveAs": "hp" },
+    { "call": "debug/call_method", "args": { "target": "Player.m_localPlayer", "method": "SetHealth", "args": "[15]" } },
+    { "wait": 0.8 },
+    { "call": "debug/call_method", "args": { "target": "Player.m_localPlayer", "method": "SetHealth", "args": "[${hp.health}]" } },
+    { "call": "events/read", "args": { "since": "${ev.last}", "channel": "player/health_changed" }, "expect": [ { "path": "count", "greaterThan": 0 } ] },
+    { "call": "player/get_health", "expect": [ { "path": "health", "greaterThan": 20 } ] }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "enter-world",
+  "stopOnFail": true,
+  "screenshotOnFail": false,
+  "steps": [
+    { "note": "Right after games_start: wait for the main menu, load the last world, wait until in it (same as world/enter)" },
+    { "call": "world/enter" }
+  ]
+}

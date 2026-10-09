@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Fork of jneb802/ValBridgeServer (MIT), rebuilt for Valheim 1.0 on Windows.
+       Compiles against the REAL game DLLs (not publicized): private access must go through AccessTools. -->
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>10</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ValBridgeServer</AssemblyName>
+    <RootNamespace>ValBridgeServer</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+    <!-- reference\ holds decompiled game code and upstream sources for reading only; tools\ holds GABS. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);reference\**;tools\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
+    <GaleProfiles>$(APPDATA)\com.kesomannen.gale\valheim\profiles</GaleProfiles>
+    <GaleProfile Condition="'$(GaleProfile)' == ''">$(GaleProfiles)\Performance Test</GaleProfile>
+    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+    <BepInExCore>$(GaleProfile)\BepInEx\core</BepInExCore>
+    <Plugins>$(GaleProfile)\BepInEx\plugins</Plugins>
+    <!-- Compile-time references (BepInEx, Harmony, Json.NET) come from any profile that has them, so building
+         doesn't depend on the deploy profile existing. Deploying still goes to GaleProfile. -->
+    <RefProfile Condition="Exists('$(GaleProfile)\BepInEx\core\BepInEx.dll')">$(GaleProfile)</RefProfile>
+    <RefProfile Condition="'$(RefProfile)' == '' And Exists('$(GaleProfiles)\Performance Test\BepInEx\core\BepInEx.dll')">$(GaleProfiles)\Performance Test</RefProfile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony" HintPath="$(RefProfile)\BepInEx\core\0Harmony.dll" Private="false" />
+    <Reference Include="BepInEx" HintPath="$(RefProfile)\BepInEx\core\BepInEx.dll" Private="false" />
+    <!-- Provided at runtime by the ValheimModding-JsonDotNET plugin. -->
+    <Reference Include="Newtonsoft.Json" HintPath="$(RefProfile)\BepInEx\plugins\ValheimModding-JsonDotNET\Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="Lib.GAB" HintPath="lib\Lib.GAB.dll" Private="true" />
+    <Reference Include="Gabp.Runtime" HintPath="lib\Gabp.Runtime.dll" Private="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <GameDll Include="assembly_valheim;assembly_utils;assembly_guiutils;UnityEngine;UnityEngine.CoreModule;UnityEngine.UI;UnityEngine.AssetBundleModule;UnityEngine.ImageConversionModule;UnityEngine.ScreenCaptureModule;UnityEngine.UIModule;UnityEngine.InputLegacyModule;UnityEngine.IMGUIModule;UnityEngine.TextRenderingModule;UnityEngine.AnimationModule;UnityEngine.PhysicsModule;UnityEngine.ParticleSystemModule;Unity.TextMeshPro;gui_framework;Unity.InputSystem" />
+    <Reference Include="@(GameDll)" HintPath="$(ManagedDir)\%(Identity).dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test scripts also travel inside the DLL, so test/run_file finds them in any profile the bridge is in. -->
+    <EmbeddedResource Include="tests\*.json" LogicalName="tests/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Deploy goes to GaleProfile and to every other Gale profile that already has the bridge installed, so no
+       profile is left on an old version. Fails (DLL locked) if the game is running from one of them. -->
+  <Target Name="DeployToGale" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
+    <ItemGroup>
+      <InstalledBridge Include="$(GaleProfiles)\*\BepInEx\plugins\ValBridge\ValBridgeServer.dll" />
+      <DeployDir Include="$(Plugins)\ValBridge\" />
+      <DeployDir Include="@(InstalledBridge->'%(RootDir)%(Directory)')" />
+      <DeployDirUnique Include="@(DeployDir->Distinct())" />
+      <TestScript Include="tests\*.json" />
+    </ItemGroup>
+    <MakeDir Directories="@(DeployDirUnique)" />
+    <Copy SourceFiles="$(TargetPath);lib\Lib.GAB.dll;lib\Gabp.Runtime.dll" DestinationFolder="%(DeployDirUnique.Identity)" />
+    <Message Importance="high" Text="ValBridge deployed to %(DeployDirUnique.Identity)" />
+    <!-- Example test scripts for test/run_file (BepInEx\ValBridge\tests); they also travel inside the DLL. -->
+    <Copy SourceFiles="@(TestScript)" DestinationFolder="$(GaleProfile)\BepInEx\ValBridge\tests" />
+  </Target>
+
+  <!-- Take the bridge back out of a profile: dotnet build -t:Undeploy -p:GaleProfile=<profile dir>.
+       Leaves BepInEx\ValBridge (test results, screenshots) in place. -->
+  <Target Name="Undeploy">
+    <RemoveDir Directories="$(Plugins)\ValBridge" />
+    <Message Importance="high" Text="ValBridge removed from $(Plugins)" />
+  </Target>
+
+</Project>

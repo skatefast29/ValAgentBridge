@@ -1,0 +1,16 @@
+bin/
+obj/
+dist/
+.vs/
+*.user
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Decompiled game code and other people's sources: local reference only, never committed
+reference/
+
+# Downloaded GABS release (re-download from github.com/pardeike/GABS/releases)
+tools/gabs/
+
+# Local backup of the old private history
+backup/

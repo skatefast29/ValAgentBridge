@@ -1,0 +1,481 @@
+{
+  "name": "bridge-1.4",
+  "stopOnFail": false,
+  "screenshotOnFail": false,
+  "clearHostiles": 40,
+  "steps": [
+    {
+      "note": "Needs the player in a world. Everything changed here is put back."
+    },
+    {
+      "waitUntil": "in_world",
+      "timeout": 30
+    },
+    {
+      "call": "world/status",
+      "expect": [
+        {
+          "path": "phase",
+          "equals": "in_world"
+        },
+        {
+          "path": "frameAgeMs",
+          "lessThan": 2000
+        },
+        {
+          "path": "fps",
+          "greaterThan": 0
+        }
+      ]
+    },
+    {
+      "note": "Wrong argument names get a clear error"
+    },
+    {
+      "call": "debug/call_method",
+      "args": {
+        "path": "Player.m_localPlayer",
+        "method": "GetHealth"
+      },
+      "allowFail": true,
+      "expect": [
+        {
+          "path": "success",
+          "equals": false
+        },
+        {
+          "path": "error",
+          "contains": "unknown argument 'path'"
+        },
+        {
+          "path": "error",
+          "contains": "target (required)"
+        }
+      ]
+    },
+    {
+      "call": "world/enter",
+      "args": {
+        "worldName": "x"
+      },
+      "allowFail": true,
+      "expect": [
+        {
+          "path": "error",
+          "contains": "worldName"
+        }
+      ]
+    },
+    {
+      "note": "world/enter returns at once when already there"
+    },
+    {
+      "call": "world/enter",
+      "expect": [
+        {
+          "path": "alreadyThere",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "note": "Places"
+    },
+    {
+      "call": "world/find_locations",
+      "expect": [
+        {
+          "path": "total",
+          "greaterThan": 0
+        }
+      ]
+    },
+    {
+      "call": "world/find_locations",
+      "args": {
+        "name": "StartTemple",
+        "max": 1
+      },
+      "expect": [
+        {
+          "path": "found",
+          "greaterThan": 0
+        }
+      ]
+    },
+    {
+      "note": "Spawn creatures, then remove them: one by id, the rest with clear_hostiles"
+    },
+    {
+      "call": "world/spawn_creature",
+      "args": {
+        "name": "Greyling",
+        "amount": 3,
+        "distance": 8
+      },
+      "saveAs": "spawn",
+      "expect": [
+        {
+          "path": "spawned[2].instanceId",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "call": "world/remove_objects",
+      "args": {
+        "ids": "[${spawn.spawned[0].instanceId}]"
+      },
+      "expect": [
+        {
+          "path": "removed",
+          "equals": 1
+        }
+      ]
+    },
+    {
+      "wait": 1
+    },
+    {
+      "call": "world/clear_hostiles",
+      "args": {
+        "radius": 30
+      },
+      "expect": [
+        {
+          "path": "removed",
+          "greaterThan": 1
+        }
+      ]
+    },
+    {
+      "call": "world/spawn_creature",
+      "args": {
+        "name": "Wood"
+      },
+      "allowFail": true,
+      "expect": [
+        {
+          "path": "error",
+          "contains": "not a creature"
+        }
+      ]
+    },
+    {
+      "note": "Time and weather, then back to normal"
+    },
+    {
+      "call": "env/status",
+      "saveAs": "env",
+      "expect": [
+        {
+          "path": "weathers[0]",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "call": "env/set_time",
+      "args": {
+        "hour": 12,
+        "pin": true
+      },
+      "expect": [
+        {
+          "path": "pinned",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "wait": 1
+    },
+    {
+      "call": "env/status",
+      "expect": [
+        {
+          "path": "timePinned",
+          "equals": true
+        },
+        {
+          "path": "hour",
+          "greaterThan": 11.5
+        },
+        {
+          "path": "hour",
+          "lessThan": 12.5
+        }
+      ]
+    },
+    {
+      "call": "env/set_time",
+      "args": {
+        "hour": -1
+      },
+      "expect": [
+        {
+          "path": "pinned",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "call": "env/set_weather",
+      "args": {
+        "name": "Clear"
+      },
+      "expect": [
+        {
+          "path": "weather",
+          "equals": "Clear"
+        }
+      ]
+    },
+    {
+      "call": "env/set_weather",
+      "args": {
+        "name": "NoSuchWeather"
+      },
+      "allowFail": true,
+      "expect": [
+        {
+          "path": "success",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "call": "env/set_weather",
+      "args": {
+        "name": ""
+      },
+      "expect": [
+        {
+          "path": "weather",
+          "equals": "normal"
+        }
+      ]
+    },
+    {
+      "note": "Protection switches and back"
+    },
+    {
+      "call": "player/set_protection",
+      "saveAs": "prot"
+    },
+    {
+      "call": "player/set_protection",
+      "args": {
+        "god": "true"
+      },
+      "expect": [
+        {
+          "path": "after.god",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "call": "player/set_protection",
+      "args": {
+        "god": "${prot.before.god}",
+        "ghost": "${prot.before.ghost}"
+      },
+      "expect": [
+        {
+          "path": "after.god",
+          "equals": "${prot.before.god}"
+        }
+      ]
+    },
+    {
+      "note": "Teleport in place (does not move the character), camera, key press, save"
+    },
+    {
+      "call": "player/get_position",
+      "saveAs": "pos"
+    },
+    {
+      "wait": 2.5
+    },
+    {
+      "call": "player/teleport",
+      "args": {
+        "x": "${pos.position.x}",
+        "z": "${pos.position.z}"
+      },
+      "expect": [
+        {
+          "path": "position.x",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "call": "player/look_direction",
+      "args": {
+        "heading": 90,
+        "tilt": 10
+      }
+    },
+    {
+      "screenshot": true,
+      "maxWidth": 960
+    },
+    {
+      "call": "input/press_key",
+      "args": {
+        "key": "ScrollLock"
+      },
+      "expect": [
+        {
+          "path": "modHotkeys",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "call": "input/press_key",
+      "args": {
+        "key": "NoSuchKey"
+      },
+      "allowFail": true,
+      "expect": [
+        {
+          "path": "success",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "call": "world/save"
+    },
+    {
+      "note": "look_at_position really turns the player (checked after the game has drawn frames)"
+    },
+    {
+      "call": "player/get_position",
+      "saveAs": "pos"
+    },
+    {
+      "call": "player/look_at_position",
+      "args": {
+        "x": 100000,
+        "z": "${pos.position.z}"
+      }
+    },
+    {
+      "wait": 0.5
+    },
+    {
+      "call": "player/get_player_state",
+      "expect": [
+        {
+          "path": "lookDirection.x",
+          "greaterThan": 0.9
+        }
+      ]
+    },
+    {
+      "call": "player/look_at_position",
+      "args": {
+        "x": -100000,
+        "z": "${pos.position.z}"
+      }
+    },
+    {
+      "wait": 0.5
+    },
+    {
+      "call": "player/get_player_state",
+      "expect": [
+        {
+          "path": "lookDirection.x",
+          "lessThan": -0.9
+        }
+      ]
+    },
+    {
+      "note": "Prefab search with kinds"
+    },
+    {
+      "call": "znetscene/search_prefabs",
+      "args": {
+        "nameFilter": "Greyling",
+        "kind": "creature"
+      },
+      "expect": [
+        {
+          "path": "prefabs[0].kind",
+          "equals": "creature"
+        }
+      ]
+    },
+    {
+      "call": "znetscene/get_prefab",
+      "args": {
+        "prefabName": "Greyling"
+      },
+      "expect": [
+        {
+          "path": "kind",
+          "equals": "creature"
+        }
+      ]
+    },
+    {
+      "note": "Vector arguments as arrays"
+    },
+    {
+      "call": "debug/call_method",
+      "args": {
+        "target": "Utils",
+        "method": "DistanceXZ",
+        "args": "[[0,0,0],[3,0,4]]"
+      },
+      "expect": [
+        {
+          "path": "returned",
+          "equals": 5
+        }
+      ]
+    },
+    {
+      "note": "Saved values in checks; popup reader"
+    },
+    {
+      "call": "player/get_health",
+      "saveAs": "hp"
+    },
+    {
+      "call": "player/get_health",
+      "expect": [
+        {
+          "path": "maxHealth",
+          "equals": "${hp.maxHealth}"
+        }
+      ]
+    },
+    {
+      "call": "ui/list",
+      "args": {
+        "limit": 3
+      },
+      "expect": [
+        {
+          "path": "success",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "call": "world/status",
+      "expect": [
+        {
+          "path": "popup",
+          "equals": null
+        }
+      ]
+    }
+  ]
+}
