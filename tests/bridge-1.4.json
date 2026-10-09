@@ -444,15 +444,15 @@
       "note": "Saved values in checks; popup reader"
     },
     {
-      "call": "player/get_health",
-      "saveAs": "hp"
+      "call": "world/status",
+      "saveAs": "ws"
     },
     {
-      "call": "player/get_health",
+      "call": "world/status",
       "expect": [
         {
-          "path": "maxHealth",
-          "equals": "${hp.maxHealth}"
+          "path": "character",
+          "equals": "${ws.character}"
         }
       ]
     },

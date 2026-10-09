@@ -9,7 +9,7 @@
     { "call": "player/get_inventory", "expect": [ { "path": "carryLimit", "greaterThan": 0 }, { "path": "backpacks", "exists": true } ] },
 
     { "note": "Cheat console commands are refused without allowCheats; normal ones return console output" },
-    { "call": "console/run_command", "args": { "command": "spawn Wood 1" }, "allowFail": true,
+    { "call": "console/run_command", "args": { "command": "tod -1" }, "allowFail": true,
       "expect": [ { "path": "success", "equals": false }, { "path": "error", "contains": "cheat" } ] },
     { "call": "console/run_command", "args": { "command": "help" }, "expect": [ { "path": "output", "exists": true } ] },
 
@@ -20,7 +20,7 @@
 
     { "note": "Bad or missing arguments give a clear error instead of crashing" },
     { "call": "player/find_nearby_prefabs", "args": {}, "allowFail": true, "expect": [ { "path": "error", "contains": "prefabName" } ] },
-    { "call": "player/pickup_nearby", "args": {}, "allowFail": true, "expect": [ { "path": "error", "contains": "which item" } ] },
+    { "call": "player/pickup_nearby", "args": {}, "allowFail": true, "expect": [ { "path": "error", "contains": "itemName" } ] },
     { "call": "player/pickup_nearby", "args": { "itemName": "NoSuchThing" }, "expect": [ { "path": "pickedUpCount", "equals": 0 } ] },
 
     { "note": "Health change is recorded as an event: health set to 15 for about a second, then put back (do this somewhere safe)" },
