@@ -30,7 +30,7 @@ namespace ValBridgeServer
     public class ValBridgeServerPlugin : BaseUnityPlugin
     {
         private const string ModName = "ValBridgeServer";
-        private const string ModVersion = "1.4.1";
+        private const string ModVersion = "1.4.2";
         private const string Author = "warpalicious";
         private const string ModGUID = Author + "." + ModName;
 

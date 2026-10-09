@@ -7,8 +7,13 @@ change other mods' settings, inspect and watch live game and mod code, and run s
 reports. It also reports when the game looks stuck (no frames, a popup waiting, a load that doesn't finish).
 
 It is a **development tool** for testing mods. Several tools are cheats (giving items, spawning, changing live
-values), so install it only in a separate mod-manager profile, never in one you play. Started any way other than
-through GABS it stays completely off, so it can stay installed in a profile used for performance measurements.
+values), so install it only in a separate mod-manager profile, never in one you play, and use a **test world and
+test character**: the agent changes things in the world while it tests. Started any way other than through GABS it
+stays completely off, so it can stay installed in a profile used for performance measurements.
+
+Cheat console commands are refused unless the agent passes `allowCheats` or devcommands is already on (some mods,
+such as Server Devcommands, can turn it on automatically). If you don't want the agent to use cheats at all, tell
+it so.
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) (MIT, see [LICENSE](LICENSE)),
 rebuilt for Valheim 1.0 on Windows and extended. What changed is in [CHANGELOG.md](CHANGELOG.md).
