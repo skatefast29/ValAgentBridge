@@ -34,6 +34,12 @@ them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manage
 - GABS 1.1 with a game entry that starts Valheim with the profile's BepInEx (see below)
 - To build: .NET SDK (any recent one; the project targets net48) and Valheim installed
 
+## Install from a release
+
+Download `ValBridge-<version>.zip` from the [releases page](https://github.com/skatefast29/ValBridge/releases) and
+copy its `BepInEx\plugins\ValBridge` folder into a test profile's `BepInEx\plugins` folder (your mod manager can open
+the profile's folder), with the game closed. The profile also needs ValheimModding-JsonDotNET. Then set up GABS as described under [Using it](#using-it).
+
 ## Build and install
 
 The game must be closed (the DLL is locked while it runs).
