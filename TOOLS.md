@@ -74,7 +74,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 | `env/set_time` | **(cheat)** Jump forward to an `hour` (0-24) like sleeping, or `pin` it there for repeatable tests; `hour` -1 releases a pinned time |
 | `env/set_weather` | **(cheat)** Force a weather by name (`env/status` lists them); empty = normal weather |
 | `time/status`, `time/set_speed`, `time/pause` | Game speed (0.1 to 10x) and pause; single player only |
-| `console/run_command` | Run a console command and get the console's output. Cheat commands need `allowCheats: true`, which turns devcommands on for that one command; the game then marks the character as having used cheats |
+| `console/run_command` | Run a console command and get the console's output. Cheat commands need `allowCheats: true`, which turns devcommands on for that one command; the game then marks the character as having used cheats. If devcommands is already on (e.g. a mod turns it on automatically), cheat commands run like any other; `cheat` and `cheatsOn` in the answer say so |
 | `znetscene/search_prefabs` | World prefabs by part of the name, each with its kind (`creature`, `item`, `piece`, `other`); `kind` filters, e.g. creatures for `world/spawn_creature` |
 | `znetscene/get_prefab` | One prefab by exact name: kind, layer, components |
 

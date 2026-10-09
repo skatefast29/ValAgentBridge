@@ -8,9 +8,11 @@
     { "note": "Inventory shows weight, carry limit and backpack contents" },
     { "call": "player/get_inventory", "expect": [ { "path": "carryLimit", "greaterThan": 0 }, { "path": "backpacks", "exists": true } ] },
 
-    { "note": "Cheat console commands are refused without allowCheats; normal ones return console output" },
+    { "note": "Cheat console commands are refused without allowCheats while devcommands is off (switched off for the check, then put back); normal ones return console output" },
+    { "call": "debug/set_value", "args": { "path": "Terminal.m_cheat", "value": "false" }, "saveAs": "cheats" },
     { "call": "console/run_command", "args": { "command": "tod -1" }, "allowFail": true,
-      "expect": [ { "path": "success", "equals": false }, { "path": "error", "contains": "cheat" } ] },
+      "expect": [ { "path": "success", "equals": false }, { "path": "error", "contains": "cheat" }, { "path": "output", "exists": true } ] },
+    { "call": "debug/set_value", "args": { "path": "Terminal.m_cheat", "value": "${cheats.before}" } },
     { "call": "console/run_command", "args": { "command": "help" }, "expect": [ { "path": "output", "exists": true } ] },
 
     { "note": "Item lookups" },

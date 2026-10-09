@@ -7,6 +7,9 @@ Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at
   `inventory-items-console`, `bridge-1.4` is `world-controls` (`enter-world` is unchanged).
 - Their checks hold up in any profile: a harmless cheat command (`tod -1`) for the refusal check, and no
   comparison of max health, which drifts as food wears off.
+- `console/run_command`: `cheat` is read before the command runs (Server Devcommands clears the flag while it runs, so
+  cheats were reported as normal commands); new `cheatsOn` says devcommands was already on, which is why a cheat ran
+  without `allowCheats`. The test switches devcommands off for its refusal check and puts it back.
 
 ## 1.4.1
 - `player/look_at_position` and `player/look_at_object` now really turn the player (they set a look direction the
