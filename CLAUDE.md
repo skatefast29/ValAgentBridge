@@ -5,7 +5,7 @@ jneb802/ValBridgeServer (MIT), rebuilt for Valheim 1.0. Tools: `TOOLS.md`. Histo
 Machine-specific notes (profiles, other projects, the user's preferences) go in `CLAUDE.local.md`, which is not committed.
 
 ## Environment
-- Valheim 1.0.16, Unity 6000.0.75 on **Mono**, BepInEx 5.4.23.5, HarmonyX 2.9.
+- Valheim 1.0.17, Unity 6000.0.75 on **Mono**, BepInEx 5.4.23.5, HarmonyX 2.9.
 - Game: `C:\Program Files (x86)\Steam\steamapps\common\Valheim` (DLLs in `valheim_Data\Managed`).
 - Mod manager **Gale**. The bridge goes in a Gale test profile (`-p:GaleProfile=<profile dir>`, log
   `BepInEx\LogOutput.log`); remove it again with `-t:Undeploy`. Never install it in a profile used for normal play.
