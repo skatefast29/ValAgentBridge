@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using HarmonyLib;
 using Lib.GAB.Tools;
 using UnityEngine;
 
@@ -16,13 +17,31 @@ namespace ValAgentBridge.Tools
     {
         private static void Log(string text) => ValAgentBridgePlugin.ModLogger.LogInfo(text);
 
-        [Tool("player/teleport", Description = "(cheat) Teleport the player to a world position; the game finds the ground (height is optional). Waits until the teleport has finished (far ones load the area first) and returns where the player ended up.")]
+        // The game keeps the height it is given (it only checks for a floor somewhere below), so without a height
+        // the player would land at their old height: inside a hill (the game then gives up), or high above a valley.
+        // Loaded ground is looked up first; far targets go in from high up and are put on the ground once their area
+        // has loaded.
+        private const float HighUp = 800f;
+        private static readonly AccessTools.FieldRef<Character, float> MaxAirAltitude =
+            AccessTools.FieldRefAccess<Character, float>("m_maxAirAltitude");
+
+        private static bool TryLandingHeight(float x, float z, out float y)
+        {
+            y = 0f;
+            var zones = ZoneSystem.instance;
+            if (zones == null || !zones.GetGroundHeight(new Vector3(x, 0f, z), out var ground)) return false;
+            y = Mathf.Max(ground, zones.m_waterLevel) + 0.5f;
+            return true;
+        }
+
+        [Tool("player/teleport", Description = "(cheat) Teleport the player to a world position; without a height the player lands on the ground (or the water surface). Waits until the teleport has finished (far ones load the area first) and returns where the player ended up.")]
         public object Teleport(
             [ToolParameter(Description = "X coordinate")] float x,
             [ToolParameter(Description = "Z coordinate")] float z,
             [ToolParameter(Description = "Height; leave out to land on the ground")] float y = float.NaN)
         {
             string? problem;
+            bool landLater = false;
             try
             {
                 problem = MainThreadDispatcher.Run(() =>
@@ -30,11 +49,17 @@ namespace ValAgentBridge.Tools
                     var player = Player.m_localPlayer;
                     if (player == null) return "No local player (not in a world).";
                     var from = player.transform.position;
-                    var target = new Vector3(x, float.IsNaN(y) ? from.y : y, z);
-                    bool distant = Vector3.Distance(new Vector3(from.x, 0, from.z), new Vector3(x, 0, z)) > 64f;
+                    float targetY = y;
+                    if (float.IsNaN(y) && !TryLandingHeight(x, z, out targetY))
+                    {
+                        targetY = HighUp;
+                        landLater = true;
+                    }
+                    var target = new Vector3(x, targetY, z);
+                    bool distant = landLater || Vector3.Distance(new Vector3(from.x, 0, from.z), new Vector3(x, 0, z)) > 64f;
                     if (!player.TeleportTo(target, player.transform.rotation, distant))
                         return "The game refused (already teleporting, or within 2 s of the last teleport). Try again in a moment.";
-                    Log($"player/teleport: ({from.x:F0}, {from.z:F0}) -> ({x:F0}, {z:F0})");
+                    Log($"player/teleport: ({from.x:F0}, {from.y:F0}, {from.z:F0}) -> ({x:F0}, {(landLater ? "ground" : targetY.ToString("F0"))}, {z:F0})");
                     return null;
                 }, 15000);
             }
@@ -42,6 +67,7 @@ namespace ValAgentBridge.Tools
             if (problem != null) return new { success = false, error = problem };
 
             var clock = Stopwatch.StartNew();
+            int landings = 0;
             while (clock.Elapsed.TotalSeconds < 40)
             {
                 Thread.Sleep(500);
@@ -51,7 +77,24 @@ namespace ValAgentBridge.Tools
                     done = MainThreadDispatcher.Run(() =>
                     {
                         var player = Player.m_localPlayer;
-                        return player == null || !player.IsTeleporting() ? Pos(player) ?? "no player" : null;
+                        if (player != null && player.IsTeleporting()) return null;
+                        // Put the player on the ground, then check on the next round that they stayed there.
+                        if (player != null && landLater && landings < 3 && TryLandingHeight(x, z, out var groundY)
+                            && player.transform.position.y - groundY > 2f)
+                        {
+                            var landing = new Vector3(x, groundY, z);
+                            player.transform.position = landing;
+                            var body = player.GetComponent<Rigidbody>();
+                            if (body != null)
+                            {
+                                body.position = landing;    // otherwise physics puts the player back up high
+                                body.linearVelocity = Vector3.zero;
+                            }
+                            MaxAirAltitude(player) = groundY;    // no fall damage from the drop-in height
+                            landings++;
+                            return null;
+                        }
+                        return Pos(player) ?? "no player";
                     }, 5000);
                 }
                 catch (TimeoutException) { continue; }    // area loading: keep waiting

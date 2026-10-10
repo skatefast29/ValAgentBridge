@@ -42,7 +42,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 | `player/look_direction` | Turn player and camera to a compass `heading` (0 = north/+Z, 90 = east/+X) and `tilt` (up +, down -), e.g. to aim a screenshot |
 | `world/clear_hostiles` | **(cheat)** Remove creatures hostile to the player within `radius` (default 50 m), so a test isn't interrupted; the player is untouched. Never players or tamed animals; bosses only with `includeBosses` |
 | `player/set_protection` | `god` (no damage) and `ghost` (creatures ignore you), `true`/`false`; switched directly, so the character is not marked as having used cheats. Returns before/after. Not saved across restarts |
-| `player/teleport` | **(cheat)** Teleport to `x`, `z` (optional `y`; the game finds the ground); waits until done and returns where the player landed |
+| `player/teleport` | **(cheat)** Teleport to `x`, `z`, optional `y` (left out: lands on the ground, or on the water surface at sea); waits until done and returns where the player landed |
 | `input/press_key` | Press a key as if typed (`key`, e.g. F11, Escape, Alpha1; `modifiers` ctrl/shift/alt; `holdFrames`). Reaches game controls and mod hotkeys made with BepInEx (most mods), not mods that read `UnityEngine.Input` directly |
 | `player/jump`, `player/dodge`, `player/set_crouch` | Single inputs |
 | `player/primary_attack`, `player/secondary_attack`, `player/block` | Single attack, or start/stop blocking |

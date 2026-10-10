@@ -4,6 +4,9 @@ ValAgentBridge was made to help with modding Valheim: it lets an AI agent automa
 Instead of launching the game, loading a world and checking things by hand after every change, you ask the agent
 (Claude Code, through the GABS MCP server) and it does it in the running game.
 
+> **Requires [GABS](https://github.com/pardeike/GABS)**, which is not on Thunderstore. ValAgentBridge only works
+> when the game is started through GABS; started normally, it does nothing.
+
 ## Features
 
 - **Game:** enter a world in one call, create characters and worlds, load, save, log out
@@ -24,7 +27,8 @@ don't want it to use them.
 ## What you need
 
 - [Claude Code](https://claude.com/claude-code) (or another MCP client)
-- [GABS](https://github.com/pardeike/GABS), which starts the game and connects the agent to ValAgentBridge
+- [GABS](https://github.com/pardeike/GABS) 1.1 or newer (download from its releases page), which starts the game and
+  connects the agent to ValAgentBridge
 - Steam running
 
 ValAgentBridge does nothing unless the game is started through GABS: no patches, no listener, no per-frame work.
@@ -38,7 +42,8 @@ ValAgentBridge does nothing unless the game is started through GABS: no patches,
 4. Ask the agent to start Valheim (`games_start valheim`), then `world/enter` to load into a world. It finds every
    tool and its arguments itself.
 
-Full setup, tool list and test script format: [GitHub](https://github.com/skatefast29/ValAgentBridge).
+The full tool list is in `TOOLS.md` in this package. Full setup and test script format:
+[GitHub](https://github.com/skatefast29/ValAgentBridge).
 
 Works well with [ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor) (optional), which adds performance
 measurements the agent can run through ValAgentBridge.

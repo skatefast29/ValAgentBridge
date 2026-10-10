@@ -6,6 +6,9 @@ Instead of launching the game, loading a world and checking things by hand after
 things out, runs scripted tests with pass/fail reports, and watches the log, on-screen messages and the mods
 themselves while it does.
 
+> **Requires [GABS](https://github.com/pardeike/GABS)** (MCP server that starts the game and connects the agent).
+> ValAgentBridge only works when the game is started through GABS; started normally, it does nothing.
+
 What the agent can do through it:
 
 - **Game:** enter a world in one call, create characters and worlds, load, save, log out
@@ -39,7 +42,7 @@ them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manage
 
 - Valheim 1.0 (Unity 6, Mono), BepInEx 5.4.23
 - ValheimModding-JsonDotNET (Newtonsoft.Json) in the profile
-- GABS 1.1 with a game entry that starts Valheim with the profile's BepInEx (see below)
+- **GABS 1.1 or newer (required)**, with a game entry that starts Valheim with the profile's BepInEx (see below)
 - To build: .NET SDK (any recent one; the project targets net48) and Valheim installed
 
 ## Install from a release

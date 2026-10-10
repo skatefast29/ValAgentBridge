@@ -47,6 +47,7 @@ $ts = [ordered]@{
     'manifest.json'            = 'thunderstore\manifest.json'
     'icon.png'                 = 'thunderstore\icon.png'
     'README.md'                = 'thunderstore\README.md'
+    'TOOLS.md'                 = 'TOOLS.md'
     'plugins/ValAgentBridge.dll'    = $dll
     'plugins/Lib.GAB.dll'      = 'lib\Lib.GAB.dll'
     'plugins/Gabp.Runtime.dll' = 'lib\Gabp.Runtime.dll'

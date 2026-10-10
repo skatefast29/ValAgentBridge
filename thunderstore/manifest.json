@@ -1,8 +1,8 @@
 {
   "name": "ValAgentBridge",
-  "version_number": "1.5.0",
+  "version_number": "1.5.1",
   "website_url": "https://github.com/skatefast29/ValAgentBridge",
-  "description": "Lets an AI agent (Claude Code through GABS) automate and monitor mod testing in a running Valheim: enter worlds, act as the player, run console commands and test scripts, read logs.",
+  "description": "Lets an AI agent automate and monitor mod testing in a running Valheim: enter worlds, act as the player, run console commands and test scripts, read logs. Requires GABS (on GitHub) and Claude Code or another MCP client.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2351",
     "ValheimModding-JsonDotNET-13.0.4"
