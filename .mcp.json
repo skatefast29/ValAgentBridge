@@ -2,7 +2,7 @@
   "mcpServers": {
     "gabs": {
       "type": "stdio",
-      "command": "C:\\ValheimMods\\ValBridge\\tools\\gabs\\gabs-v1.1.2-windows-amd64\\gabs.exe",
+      "command": "C:\\ValheimMods\\ValAgentBridge\\tools\\gabs\\gabs-v1.1.2-windows-amd64\\gabs.exe",
       "args": [
         "server"
       ],

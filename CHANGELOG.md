@@ -3,8 +3,6 @@
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
 ## 1.5.0
-- Renamed to ValAgentBridge: installs in `BepInEx\plugins\ValAgentBridge`, keeps screenshots, test scripts and
-  reports in `BepInEx\ValAgentBridge`.
 - Available as a Thunderstore package (`thunderstore\`: manifest, icon, README); `tools\package.ps1` builds the
   release zips.
 - The bundled `inventory-items-console` test works whatever the character's health is.
@@ -12,8 +10,8 @@ Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at
 ## 1.4.2
 - README: opens with what the mod is for (automating and monitoring mod testing); how cheat commands are handled;
   install from a release.
-- Bundled test scripts named after what they check: `smoke` is now `quick-check`, `bridge-1.3` is
-  `inventory-items-console`, `bridge-1.4` is `world-controls` (`enter-world` is unchanged).
+- Bundled test scripts named after what they check: `quick-check`, `inventory-items-console`, `world-controls` and
+  `enter-world`.
 - Their checks hold up in any profile: a harmless cheat command (`tod -1`) for the refusal check, and no
   comparison of max health, which drifts as food wears off.
 - `console/run_command`: `cheat` is read before the command runs (Server Devcommands clears the flag while it runs, so

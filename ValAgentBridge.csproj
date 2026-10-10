@@ -52,20 +52,14 @@
        profile is left on an old version. Fails (DLL locked) if the game is running from one of them. -->
   <Target Name="DeployToGale" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
     <ItemGroup>
-      <!-- Builds before 1.5.0 lived in plugins\ValBridge (as ValBridge.dll or ValBridgeServer.dll). -->
       <InstalledBridge Include="$(GaleProfiles)\*\BepInEx\plugins\ValAgentBridge\ValAgentBridge.dll" />
-      <OldBridge Include="$(GaleProfiles)\*\BepInEx\plugins\ValBridge\ValBridge.dll;$(GaleProfiles)\*\BepInEx\plugins\ValBridge\ValBridgeServer.dll" />
       <DeployDir Include="$(Plugins)\ValAgentBridge\" />
       <DeployDir Include="@(InstalledBridge->'%(RootDir)%(Directory)')" />
-      <DeployDir Include="$([System.IO.Path]::GetFullPath('%(OldBridge.RootDir)%(OldBridge.Directory)..\ValAgentBridge\'))" Condition="'@(OldBridge)' != ''" />
-      <OldBridgeDir Include="@(OldBridge->'%(RootDir)%(Directory)')" />
       <DeployDirUnique Include="@(DeployDir->Distinct())" />
       <TestScript Include="tests\*.json" />
     </ItemGroup>
     <MakeDir Directories="@(DeployDirUnique)" />
     <Copy SourceFiles="$(TargetPath);lib\Lib.GAB.dll;lib\Gabp.Runtime.dll" DestinationFolder="%(DeployDirUnique.Identity)" />
-    <!-- The old folder is removed so the bridge doesn't load twice. -->
-    <RemoveDir Directories="@(OldBridgeDir->Distinct())" />
     <Message Importance="high" Text="ValAgentBridge deployed to %(DeployDirUnique.Identity)" />
     <!-- Example test scripts for test/run_file (BepInEx\ValAgentBridge\tests); they also travel inside the DLL. -->
     <Copy SourceFiles="@(TestScript)" DestinationFolder="$(GaleProfile)\BepInEx\ValAgentBridge\tests" />
@@ -74,7 +68,7 @@
   <!-- Take the bridge back out of a profile: dotnet build -t:Undeploy -p:GaleProfile=<profile dir>.
        Leaves BepInEx\ValAgentBridge (test results, screenshots) in place. -->
   <Target Name="Undeploy">
-    <RemoveDir Directories="$(Plugins)\ValAgentBridge;$(Plugins)\ValBridge" />
+    <RemoveDir Directories="$(Plugins)\ValAgentBridge" />
     <Message Importance="high" Text="ValAgentBridge removed from $(Plugins)" />
   </Target>
 
