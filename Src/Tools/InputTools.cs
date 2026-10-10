@@ -71,7 +71,9 @@ namespace ValAgentBridge.Tools
                 try { if (MainThreadDispatcher.Run(() => Time.frameCount, 2000) > releaseFrame) break; }
                 catch (TimeoutException) { }
             }
-            MainThreadDispatcher.Run(() => { foreach (var k in all) Keys.Remove(k); return 0; }, 5000);
+            // Left in place if the game is busy: the entries are frame-bounded, so they stop matching anyway.
+            try { MainThreadDispatcher.Run(() => { foreach (var k in all) Keys.Remove(k); return 0; }, 5000); }
+            catch (Exception) { }
 
             ValAgentBridgePlugin.ModLogger.LogInfo($"input/press_key: {string.Join("+", all)}");
             return new

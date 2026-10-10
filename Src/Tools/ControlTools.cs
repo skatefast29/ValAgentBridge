@@ -22,30 +22,42 @@ namespace ValAgentBridge.Tools
         // Loaded ground is looked up first; far targets go in from high up and are put on the ground once their area
         // has loaded.
         private const float HighUp = 800f;
-        private static readonly AccessTools.FieldRef<Character, float> MaxAirAltitude =
-            AccessTools.FieldRefAccess<Character, float>("m_maxAirAltitude");
+        // Below the dungeon interiors (around y 5000 above their entrances) and above any terrain.
+        private const float RayStart = 1000f;
+        private static readonly int SolidMask = LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "terrain");
+        private static AccessTools.FieldRef<Character, float>? _maxAirAltitude;
 
+        /// <summary>Main thread. The highest surface to stand on at x/z: ground, a rock, a roof or floor (not tree
+        /// tops, creatures or loose items), or the water surface. False while nothing there is loaded.</summary>
         private static bool TryLandingHeight(float x, float z, out float y)
         {
             y = 0f;
             var zones = ZoneSystem.instance;
-            if (zones == null || !zones.GetGroundHeight(new Vector3(x, 0f, z), out var ground)) return false;
-            y = Mathf.Max(ground, zones.m_waterLevel) + 0.5f;
-            return true;
+            if (zones == null) return false;
+            var hits = Physics.RaycastAll(new Vector3(x, RayStart, z), Vector3.down, RayStart + 100f, SolidMask, QueryTriggerInteraction.Ignore);
+            foreach (var hit in hits.OrderBy(h => h.distance))
+            {
+                if (hit.collider.attachedRigidbody != null || hit.collider.GetComponentInParent<TreeBase>() != null) continue;
+                y = Mathf.Max(hit.point.y, zones.m_waterLevel) + 0.5f;
+                return true;
+            }
+            return false;
         }
 
-        [Tool("player/teleport", Description = "(cheat) Teleport the player to a world position; without a height the player lands on the ground (or the water surface). Waits until the teleport has finished (far ones load the area first) and returns where the player ended up.")]
+        [Tool("player/teleport", Description = "(cheat) Teleport the player to a world position. Without a height the player lands on the highest surface there: ground, a rock, a roof (not tree tops), or the water surface; give the height to land inside a building. Waits until the teleport has finished (far ones load the area first) and returns where the player ended up.")]
         public object Teleport(
             [ToolParameter(Description = "X coordinate")] float x,
             [ToolParameter(Description = "Z coordinate")] float z,
-            [ToolParameter(Description = "Height; leave out to land on the ground")] float y = float.NaN)
+            [ToolParameter(Description = "Height; leave out to land on top of whatever is there")] float y = float.NaN)
         {
             string? problem;
             bool landLater = false;
+            int abandoned = 0;    // set when the call gave up waiting: the queued teleport must not run later
             try
             {
                 problem = MainThreadDispatcher.Run(() =>
                 {
+                    if (Interlocked.CompareExchange(ref abandoned, 0, 0) != 0) return "abandoned";
                     var player = Player.m_localPlayer;
                     if (player == null) return "No local player (not in a world).";
                     var from = player.transform.position;
@@ -62,6 +74,11 @@ namespace ValAgentBridge.Tools
                     Log($"player/teleport: ({from.x:F0}, {from.y:F0}, {from.z:F0}) -> ({x:F0}, {(landLater ? "ground" : targetY.ToString("F0"))}, {z:F0})");
                     return null;
                 }, 15000);
+            }
+            catch (TimeoutException)
+            {
+                Interlocked.Exchange(ref abandoned, 1);
+                problem = "The game's main thread did not answer in time (loading screen or paused?); the teleport was cancelled.";
             }
             catch (Exception ex) { problem = ex.GetBaseException().Message; }
             if (problem != null) return new { success = false, error = problem };
@@ -82,6 +99,8 @@ namespace ValAgentBridge.Tools
                         if (player != null && landLater && landings < 3 && TryLandingHeight(x, z, out var groundY)
                             && player.transform.position.y - groundY > 2f)
                         {
+                            // Looked up first: if the game renamed it, nothing has moved yet.
+                            _maxAirAltitude ??= AccessTools.FieldRefAccess<Character, float>("m_maxAirAltitude");
                             var landing = new Vector3(x, groundY, z);
                             player.transform.position = landing;
                             var body = player.GetComponent<Rigidbody>();
@@ -90,7 +109,7 @@ namespace ValAgentBridge.Tools
                                 body.position = landing;    // otherwise physics puts the player back up high
                                 body.linearVelocity = Vector3.zero;
                             }
-                            MaxAirAltitude(player) = groundY;    // no fall damage from the drop-in height
+                            _maxAirAltitude(player) = groundY;    // no fall damage from the drop-in height
                             landings++;
                             return null;
                         }
@@ -98,6 +117,10 @@ namespace ValAgentBridge.Tools
                     }, 5000);
                 }
                 catch (TimeoutException) { continue; }    // area loading: keep waiting
+                catch (Exception ex)
+                {
+                    return new { success = false, error = "Teleported, but landing failed: " + ex.GetBaseException().Message, position = (object?)null };
+                }
                 if (done != null)
                     return new { success = true, position = done, seconds = Math.Round(clock.Elapsed.TotalSeconds, 1) };
             }
@@ -107,28 +130,113 @@ namespace ValAgentBridge.Tools
         [Tool("world/clear_hostiles", Description = "(cheat) Remove creatures hostile to the player within a radius, so a test isn't interrupted by attacks. Leaves the player untouched (no god mode). Never removes players or tamed animals; bosses only with includeBosses. Returns what was removed.")]
         public object ClearHostiles(
             [ToolParameter(Description = "Radius in metres around the player (default 50, max 200)")] float radius = 50f,
+            [ToolParameter(Description = "Also remove bosses (default false)")] bool includeBosses = false) =>
+            ClearNow(radius, includeBosses);
+
+        // Clearing that keeps going between calls (world/keep_clear). Runs on a timer thread, clears on the main thread.
+        private static readonly object KeepClearGate = new object();
+        private static System.Threading.Timer? _keepClear;
+        private static float _keepClearRadius;
+        private static double _keepClearEvery;
+        private static bool _keepClearBosses;
+        private static int _keepClearRemoved;
+
+        public static bool KeepClearOn { get; private set; }
+
+        /// <summary>True once world/keep_clear has been called this session; until then world/enter reminds the agent
+        /// to offer it to the owner.</summary>
+        public static bool KeepClearChosen { get; private set; }
+
+        public static object KeepClearState()
+        {
+            lock (KeepClearGate)
+                return KeepClearOn
+                    ? new { on = true, radius = _keepClearRadius, everySeconds = _keepClearEvery, includeBosses = _keepClearBosses, removedSoFar = _keepClearRemoved }
+                    : (object)new { on = false, radius = 0f, everySeconds = 0.0, includeBosses = false, removedSoFar = _keepClearRemoved };
+        }
+
+        [Tool("world/keep_clear", Description = "(cheat) Removes creatures hostile to the player every few seconds, between calls and test scripts, so one can't kill the character mid-test. Off by default. At the start of testing, offer it to the owner and turn it on only if they want it; leave it off when the test is about hostile creatures (spawning, combat, AI, raids) or measures performance. Same rules as world/clear_hostiles. Returns the state.")]
+        public object KeepClear(
+            [ToolParameter(Description = "true = keep clearing, false = stop")] bool on,
+            [ToolParameter(Description = "Radius in metres around the player (default 50, max 200)")] float radius = 50f,
+            [ToolParameter(Description = "Seconds between clearings (default 5, 2 to 600)")] double every = 5,
             [ToolParameter(Description = "Also remove bosses (default false)")] bool includeBosses = false)
+        {
+            lock (KeepClearGate)
+            {
+                KeepClearChosen = true;
+                Switch(on, radius, every, includeBosses);
+            }
+            return new { success = true, keepClear = KeepClearState() };
+        }
+
+        // Under KeepClearGate.
+        private static void Switch(bool on, float radius, double every, bool includeBosses)
+        {
+            {
+                _keepClear?.Dispose();
+                _keepClear = null;
+                KeepClearOn = on;
+                if (on)
+                {
+                    _keepClearRadius = Mathf.Clamp(radius, 1f, 200f);
+                    _keepClearEvery = Math.Max(2, Math.Min(600, every));
+                    _keepClearBosses = includeBosses;
+                    var period = TimeSpan.FromSeconds(_keepClearEvery);
+                    _keepClear = new System.Threading.Timer(_ => KeepClearTick(), null, TimeSpan.Zero, period);
+                }
+                Log(on ? $"world/keep_clear: on, hostile creatures within {_keepClearRadius:F0} m are removed every {_keepClearEvery:F0} s" : "world/keep_clear: off");
+            }
+        }
+
+        private static void KeepClearTick()
+        {
+            float radius;
+            bool bosses;
+            lock (KeepClearGate)
+            {
+                if (!KeepClearOn) return;
+                radius = _keepClearRadius;
+                bosses = _keepClearBosses;
+            }
+            // Quietly skipped while not in a world or while the main thread is busy (loading).
+            try
+            {
+                var removed = MainThreadDispatcher.Run(() => Player.m_localPlayer == null ? 0 : ClearOnMainThread(radius, bosses).total, 5000);
+                if (removed > 0) lock (KeepClearGate) _keepClearRemoved += removed;
+            }
+            catch (Exception) { }
+        }
+
+        private static object ClearNow(float radius, bool includeBosses)
         {
             return MainThreadDispatcher.RunTool(() =>
             {
-                var player = Player.m_localPlayer;
-                if (player == null || ZNetScene.instance == null) return new { success = false, error = "Not in a world." };
-                var near = new List<Character>();
-                Character.GetCharactersInRange(player.transform.position, Mathf.Clamp(radius, 1f, 200f), near);
-                var removed = new Dictionary<string, int>();
-                int bossesLeft = 0;
-                foreach (var c in near)
-                {
-                    if (c == null || c.IsPlayer() || c.IsTamed() || !BaseAI.IsEnemy(player, c)) continue;
-                    if (c.IsBoss() && !includeBosses) { bossesLeft++; continue; }
-                    var name = Utils.GetPrefabName(c.gameObject);
-                    removed[name] = removed.TryGetValue(name, out var n) ? n + 1 : 1;
-                    ZNetScene.instance.Destroy(c.gameObject);
-                }
-                int total = removed.Values.Sum();
-                if (total > 0) Log($"world/clear_hostiles: removed {total} within {radius:F0} m ({string.Join(", ", removed.Select(kv => $"{kv.Value} {kv.Key}"))})");
-                return new { success = true, removed = total, kinds = removed, bossesLeft };
+                if (Player.m_localPlayer == null || ZNetScene.instance == null) return new { success = false, error = "Not in a world." };
+                var (total, kinds, bossesLeft) = ClearOnMainThread(radius, includeBosses);
+                return new { success = true, removed = total, kinds, bossesLeft };
             });
+        }
+
+        private static (int total, Dictionary<string, int> kinds, int bossesLeft) ClearOnMainThread(float radius, bool includeBosses)
+        {
+            var removed = new Dictionary<string, int>();
+            int bossesLeft = 0;
+            var player = Player.m_localPlayer;
+            if (player == null || ZNetScene.instance == null) return (0, removed, 0);
+            var near = new List<Character>();
+            Character.GetCharactersInRange(player.transform.position, Mathf.Clamp(radius, 1f, 200f), near);
+            foreach (var c in near)
+            {
+                if (c == null || c.IsPlayer() || c.IsTamed() || !BaseAI.IsEnemy(player, c)) continue;
+                if (c.IsBoss() && !includeBosses) { bossesLeft++; continue; }
+                var name = Utils.GetPrefabName(c.gameObject);
+                removed[name] = removed.TryGetValue(name, out var n) ? n + 1 : 1;
+                ZNetScene.instance.Destroy(c.gameObject);
+            }
+            int total = removed.Values.Sum();
+            if (total > 0) Log($"world/clear_hostiles: removed {total} within {radius:F0} m ({string.Join(", ", removed.Select(kv => $"{kv.Value} {kv.Key}"))})");
+            return (total, removed, bossesLeft);
         }
 
         [Tool("player/set_protection", Description = "Keep the player safe while a test runs: god = takes no damage, ghost = creatures ignore the player. Switched directly, not through the console, so the character is not marked as having used cheats. Leave an argument out to keep it as it is; returns the state before and after. Not saved: both are off again after a restart.")]

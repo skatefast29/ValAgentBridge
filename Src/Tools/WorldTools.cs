@@ -68,7 +68,8 @@ namespace ValAgentBridge.Tools
                 frameAgeMs = frameAge,
                 fps = MainThreadDispatcher.FrameMs > 0 ? Math.Round(1000.0 / MainThreadDispatcher.FrameMs) : 0,
                 s.popup,
-                hint = Hint(s, inPhase, frameAge)
+                hint = Hint(s, inPhase, frameAge),
+                keepClear = ControlTools.KeepClearState()
             };
         }
 
@@ -138,7 +139,7 @@ namespace ValAgentBridge.Tools
             });
         }
 
-        [Tool("world/enter", Description = "Get a character into a world in one call, from wherever the game is: waits for the main menu (right after games_start is fine), logs out first if a different world or character is loaded, optionally creates the character and/or world, loads, and returns once the player is in the world. Returns at once if already there. Gives up after `timeout` (default 180 s; 600 s when it creates a world, since generating one takes long), or early if the game draws no frame for 90 s (5 min while generating). Give the GABS call timeout 300, or 700 with create.")]
+        [Tool("world/enter", Description = "Get a character into a world in one call, from wherever the game is: waits for the main menu (right after games_start is fine), logs out first if a different world or character is loaded, optionally creates the character and/or world, loads, and returns once the player is in the world. Returns at once if already there. Gives up after `timeout` (default 180 s; 600 s when it creates a world, since generating one takes long), or early if the game draws no frame for 90 s (5 min while generating). Give the GABS call timeout 300, or 700 with create. Until world/keep_clear has been set this session, the answer includes askOwner: offer the owner hostile-creature clearing (off by default).")]
         public object Enter(
             [ToolParameter(Description = "Character name. Empty = the one in use, else the last one used.")] string character = "",
             [ToolParameter(Description = "World name. Empty = the one in use, else the last one used.")] string world = "",
@@ -162,7 +163,7 @@ namespace ValAgentBridge.Tools
                 bool sameChar = character.Length == 0 || string.Equals(character, s.character, StringComparison.OrdinalIgnoreCase);
                 bool sameWorld = world.Length == 0 || string.Equals(world, s.world, StringComparison.OrdinalIgnoreCase);
                 if (sameChar && sameWorld)
-                    return new { success = true, alreadyThere = true, s.character, s.world, seconds = Math.Round(clock.Elapsed.TotalSeconds, 1) };
+                    return new { success = true, alreadyThere = true, s.character, s.world, seconds = Math.Round(clock.Elapsed.TotalSeconds, 1), askOwner = AskOwner() };
 
                 ValAgentBridgePlugin.ModLogger.LogInfo($"world/enter: logging out of {s.world} ({s.character}) first");
                 var logout = MainThreadDispatcher.RunTool(() =>
@@ -174,25 +175,37 @@ namespace ValAgentBridge.Tools
                 if (failure != null) return failure;
             }
 
-            // 3. Create what's missing, if asked.
-            if (create)
+            double loadStart;
+            try
             {
-                var problem = MainThreadDispatcher.Run(() => CreateMissing(character, world, seed, created), 20000);
-                if (problem != null) return new { success = false, error = problem };
-                if (created.Any(c => c.StartsWith("world")))
+                // 3. Create what's missing, if asked.
+                if (create)
                 {
-                    _generating = true;
-                    if (timeout <= 0) limit = clock.Elapsed.TotalSeconds + 600;
+                    var problem = MainThreadDispatcher.Run(() => CreateMissing(character, world, seed, created), 20000);
+                    if (problem != null) return new { success = false, error = problem };
+                    if (created.Any(c => c.StartsWith("world")))
+                    {
+                        _generating = true;
+                        if (timeout <= 0) limit = clock.Elapsed.TotalSeconds + 600;
+                    }
                 }
-            }
 
-            // 4. Load and wait until in the world.
-            var started = MainThreadDispatcher.Run(() => StartLoad(character, world), 20000);
-            if (!started.ok) return new { success = false, error = started.error };
-            double loadStart = clock.Elapsed.TotalSeconds;
-            s = WaitFor(p => p == "in_world", Left(), out failure);
-            _generating = false;
-            if (failure != null) return failure;
+                // 4. Load and wait until in the world.
+                var started = MainThreadDispatcher.Run(() => StartLoad(character, world), 20000);
+                if (!started.ok) return new { success = false, error = started.error };
+                loadStart = clock.Elapsed.TotalSeconds;
+                s = WaitFor(p => p == "in_world", Left(), out failure);
+                if (failure != null) return failure;
+            }
+            catch (Exception ex)
+            {
+                var e = ex.GetBaseException();
+                return new { success = false, error = e is TimeoutException ? "The menu did not answer in time; check world/status." : $"{e.GetType().Name}: {e.Message}" };
+            }
+            finally
+            {
+                _generating = false;
+            }
 
             return new
             {
@@ -202,9 +215,14 @@ namespace ValAgentBridge.Tools
                 created,
                 secondsToMenu = Math.Round(toMenu, 1),
                 secondsLoading = Math.Round(clock.Elapsed.TotalSeconds - loadStart, 1),
-                seconds = Math.Round(clock.Elapsed.TotalSeconds, 1)
+                seconds = Math.Round(clock.Elapsed.TotalSeconds, 1),
+                askOwner = AskOwner()
             };
         }
+
+        private static string? AskOwner() => ControlTools.KeepClearChosen
+            ? null
+            : "Hostile creature clearing is off. Creatures can kill the character mid-test: ask the owner whether to turn it on (world/keep_clear on=true; it removes hostile creatures within 50 m every 5 s until turned off), unless the test is about hostile creatures. Call world/keep_clear with their answer (on=true or on=false) so this reminder stops.";
 
         /// <summary>Polls the phase once a second. On timeout <paramref name="failure"/> is the error answer, with
         /// what the game looked like (popup, frozen, screenshot).</summary>

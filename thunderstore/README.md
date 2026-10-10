@@ -23,6 +23,9 @@ Instead of launching the game, loading a world and checking things by hand after
 
 Cheat console commands run only with `allowCheats` or when devcommands is already on.
 
+Clearing hostile creatures is off by default. When testing starts the agent offers to turn it on, so a creature
+can't kill the character mid-test; say no if you are testing creatures.
+
 ## What you need
 
 - [Claude Code](https://claude.com/claude-code) (or another MCP client)

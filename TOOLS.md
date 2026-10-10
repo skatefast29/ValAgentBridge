@@ -28,7 +28,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 | `player/equip_item`, `player/unequip_item` | By name; exact prefab name wins over a partial match |
 | `player/use_item` | Eat or drink a consumable |
 | `player/drop_item` | Drop from the inventory, or from the backpack with `fromBackpack: true` |
-| `player/repair_item` | **(cheat)** Restore durability; no station check, no cost |
+| `player/repair_item` | **(cheat)** Restore durability; no station check, no cost; logged |
 | `items/find` | Search all items (vanilla and modded) by text and type, sort by health, stamina, eitr, food, damage, armor, block or weight |
 | `items/info` | One item: food values, damage by type, armor, stack, weight, teleportable, recipe |
 
@@ -41,11 +41,12 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 | `player/look_at_position`, `player/look_at_object` | Face a point or an object (instanceId) |
 | `player/look_direction` | Turn player and camera to a compass `heading` (0 = north/+Z, 90 = east/+X) and `tilt` (up +, down -), e.g. to aim a screenshot |
 | `world/clear_hostiles` | **(cheat)** Remove creatures hostile to the player within `radius` (default 50 m), so a test isn't interrupted; the player is untouched. Never players or tamed animals; bosses only with `includeBosses` |
+| `world/keep_clear` | **(cheat)** Keep clearing them every few seconds for the rest of the session (`on`, `radius` 50, `every` 5 s, `includeBosses`). **Off by default**: `world/enter` reminds the agent to offer it to the owner until it has been set either way. Leave off for tests about hostile creatures and for performance measurements |
 | `player/set_protection` | `god` (no damage) and `ghost` (creatures ignore you), `true`/`false`; switched directly, so the character is not marked as having used cheats. Returns before/after. Not saved across restarts |
 | `player/teleport` | **(cheat)** Teleport to `x`, `z`, optional `y` (left out: lands on the ground, or on the water surface at sea); waits until done and returns where the player landed |
 | `input/press_key` | Press a key as if typed (`key`, e.g. F11, Escape, Alpha1; `modifiers` ctrl/shift/alt; `holdFrames`). Reaches game controls and mod hotkeys made with BepInEx (most mods), not mods that read `UnityEngine.Input` directly |
-| `player/jump`, `player/dodge`, `player/set_crouch` | Single inputs |
-| `player/primary_attack`, `player/secondary_attack`, `player/block` | Single attack, or start/stop blocking |
+| `player/jump`, `player/dodge`, `player/set_crouch` | Single inputs; `dodge` takes a world direction (`x` east, `z` north; default backward) |
+| `player/primary_attack`, `player/secondary_attack`, `player/block` | Single attack, or start/stop blocking (held until `active=false`) |
 | `player/interact` | Press E on whatever is hovered |
 
 ## Crafting and building
@@ -54,15 +55,15 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 |---|---|
 | `player/get_available_recipes` | Recipes craftable here, with materials and whether you have them |
 | `player/craft_item` | Craft by name, consuming materials |
-| `player/place_piece` | Place a build piece (hammer equipped) at a position and rotation |
+| `player/place_piece` | **(cheat)** Place a build piece (building tool equipped) at a position and rotation, free: no materials, station or build-area check; logged |
 | `player/remove_piece` | Demolish a piece by instanceId |
 
 ## World and game
 
 | Tool | What it does |
 |---|---|
-| `world/status` | `main_menu`, `loading` or `in_world`, with character and world; `secondsInPhase`, `frameAgeMs` (time since the game last drew a frame; pauses while loading are normal), `fps`, the text of a popup blocking the menu, and a `hint` when something looks stuck |
-| `world/enter` | Get into a world in one call from wherever the game is: waits for the menu (fine right after `games_start`), logs out first if another world or character is loaded, loads, waits until in the world. `character`, `world` (empty = in use / last used), `create` (make a missing character or world), `seed`, `timeout` (default 180 s, 600 s when it creates a world; stops early after 90 s without a frame, 5 min while generating; give GABS `timeout` 300, 700 with `create`) |
+| `world/status` | `main_menu`, `loading` or `in_world`, with character and world; `secondsInPhase`, `frameAgeMs` (time since the game last drew a frame; pauses while loading are normal), `fps`, the text of a popup blocking the menu, a `hint` when something looks stuck, and the `keepClear` state |
+| `world/enter` | Get into a world in one call from wherever the game is: waits for the menu (fine right after `games_start`), logs out first if another world or character is loaded, loads, waits until in the world. `character`, `world` (empty = in use / last used), `create` (make a missing character or world), `seed`, `timeout` (default 180 s, 600 s when it creates a world; stops early after 90 s without a frame, 5 min while generating; give GABS `timeout` 300, 700 with `create`). Until `world/keep_clear` has been set, the answer has `askOwner`: offer the owner hostile-creature clearing |
 | `world/list_saves` | Characters and worlds on disk, and the last-used ones |
 | `world/load` | From the main menu, start loading a character into a world and return at once (`world/enter` waits) |
 | `world/logout` | Save and return to the main menu |
@@ -84,7 +85,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 |---|---|
 | `screen/capture` | Screenshot (JPG, default 1280 wide) to `BepInEx\ValAgentBridge\screenshots\` (last 30 kept); returns the path |
 | `ui/list` | The open popup's text and the visible clickable buttons/toggles (`includeHud` adds hotbar slots etc.) |
-| `ui/click` | Click a button or flip a toggle by id or label |
+| `ui/click` | Click a button or flip a toggle by id or label (one of them is required) |
 | `ui/messages` | Messages the game showed on screen, numbered (`since` = only new ones) |
 | `logs/read`, `logs/mark` | The last 3000 BepInEx/Unity log lines, numbered, filter by level and text |
 | `events/read` | `player/death` and `player/health_changed` events (also sent on those GABP channels) |
@@ -126,7 +127,8 @@ latest results.
 
 - Checks (`expect`, `until`): `path` (JSON path into the result, e.g. `position.x`, `items[0].name`) plus one of
   `equals`, `notEquals`, `contains`, `greaterThan`, `lessThan`, `exists`.
-- Top-level `"clearHostiles": 50` removes hostile creatures within 50 m before the first step (`true` = 50 m).
+- Top-level `"clearHostiles": 50` removes hostile creatures within 50 m before the first step (`true` = 50 m,
+  `false` = no clearing).
 - Top-level `"keepClear": 50` (or `{ "radius": 50, "every": 10 }`) clears them again every 10 s during the run; the
   answer counts how many (`hostilesClearedDuringRun`). Off by default: avoid it in performance measurements.
 - Top-level `"protect": true` turns on god and ghost mode for the run and puts them back as they were afterwards.

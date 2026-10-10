@@ -36,8 +36,9 @@ Machine-specific notes (profiles, other projects, the user's preferences) go in 
 - Ask before starting, stopping or moving the user's character in their game; restore anything a test changes
   (health, items, settings). In a test script, `saveAs` the value first and set it back from `${...}` in the same
   script (health is absolute: max HP with food can be 250+, not 25). Afterwards re-read inventory and backpack.
-- Creatures attacking the character spoil tests: clear them first (`world/clear_hostiles`, or `"clearHostiles": 50`
-  in a test script; `"keepClear"` for long runs that aren't performance measurements), not with god/ghost mode,
+- Creatures attacking the character spoil tests: offer the owner `world/keep_clear` at the start (off by default;
+  `world/enter` reminds you), or clear them for one test (`world/clear_hostiles`, `"clearHostiles": 50` in a test
+  script; `"keepClear"` for long runs that aren't performance measurements), not with god/ghost mode,
   which changes how the game behaves and can skew results. Use `player/set_protection` only when the user asks,
   and set it back afterwards (the answer gives `before`).
 - A test that spawns creatures removes them again (`world/remove_objects` with the spawned instanceIds); one that

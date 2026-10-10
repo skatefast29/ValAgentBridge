@@ -46,6 +46,8 @@ namespace ValAgentBridge.Tools
             [ToolParameter(Description = "Control id from ui/list (0 = use label)")] int id = 0,
             [ToolParameter(Description = "Label text; exact match first, then 'contains'")] string label = "")
         {
+            if (id == 0 && string.IsNullOrWhiteSpace(label))
+                return new { success = false, error = "Say which control: id from ui/list, or label." };
             return MainThreadDispatcher.RunTool(() =>
             {
                 var all = Controls().ToList();

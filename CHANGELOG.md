@@ -2,6 +2,21 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.5.2
+- New `world/keep_clear`: keeps removing hostile creatures near the player for the whole session, so one can't kill
+  the character mid-test. Off by default; `world/enter` answers with `askOwner` until it is set, so the agent offers
+  it to the owner. `world/status` shows its state.
+- `player/block` holds the block until `active=false` (the game's own controls ended it on the next physics tick).
+- `player/dodge` rolls in the world direction given (it was read relative to the camera, so "backward" went
+  sideways unless facing north).
+- `player/teleport` without a height lands on the highest surface (ground, rock, roof; not tree tops) instead of the
+  terrain under it. A teleport that times out is cancelled instead of happening later; landing errors are answers.
+- `ui/click` with neither id nor label asks which control instead of clicking one without a label.
+- Test scripts: `"clearHostiles": false` no longer clears.
+- `world/enter` and `input/press_key` answer with an error instead of failing the call when the game is busy.
+- `player/place_piece` and `player/repair_item` are marked (cheat) and logged; placed pieces count as cheated for
+  the build-height stat; the place-piece description no longer claims a crafting station is needed.
+
 ## 1.5.1
 - `player/teleport` without a height lands on the ground (or the water surface at sea). It used to keep the player's
   current height, so the game dropped them from high above lower ground or refused ("blocked") on higher ground.

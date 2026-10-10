@@ -83,7 +83,8 @@ namespace ValAgentBridge.Tools
             // "clearHostiles": radius removes hostile creatures near the player before the first step.
             if (script["clearHostiles"] != null)
             {
-                var radius = script["clearHostiles"]!.Type == JTokenType.Boolean ? 50.0 : script.Value<double>("clearHostiles");
+                var ch = script["clearHostiles"]!;
+                var radius = ch.Type == JTokenType.Boolean ? (ch.Value<bool>() ? 50.0 : 0) : ch.Type == JTokenType.Null ? 0 : ch.Value<double>();
                 if (radius > 0) Call("world/clear_hostiles", new JObject { ["radius"] = radius });
             }
             // "keepClear": radius (or {"radius":50,"every":10}) repeats that every few seconds during the run. Off by

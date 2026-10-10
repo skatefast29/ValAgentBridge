@@ -239,7 +239,7 @@ namespace ValAgentBridge.Tools
             return new { success = result, message = result ? $"Dropped {dropAmount}x {PrefabOf(item)}" : "Cannot drop (quest item)" };
         });
 
-        [Tool("player/repair_item", Description = "Restore an inventory item to full durability. Cheat: it does not check for a crafting station or cost anything.")]
+        [Tool("player/repair_item", Description = "(cheat) Restore an inventory item to full durability. It does not check for a crafting station or cost anything.")]
         public object RepairItem(
             [ToolParameter(Description = "Item name to repair (prefab name). If empty, repairs the first damaged item.")] string itemName = "") => WithPlayer(player =>
         {
@@ -247,6 +247,7 @@ namespace ValAgentBridge.Tools
             var item = string.IsNullOrEmpty(itemName) ? damaged.FirstOrDefault() : FindItem(damaged, itemName);
             if (item == null) return Fail("No damaged item found to repair");
             item.m_durability = item.GetMaxDurability();
+            ValAgentBridgePlugin.ModLogger.LogInfo($"player/repair_item: {PrefabOf(item)}");
             return new { success = true, message = $"Repaired {PrefabOf(item)}" };
         });
 
@@ -362,14 +363,13 @@ namespace ValAgentBridge.Tools
             return new { success = result, message = result ? "Secondary attack started" : "Cannot attack (no weapon, no secondary attack, mid-animation, or stunned)" };
         });
 
-        [Tool("player/block", Description = "Start or stop blocking with the current shield/weapon. Blocking within 0.25s of an incoming hit triggers a parry.")]
+        [Tool("player/block", Description = "Start or stop blocking with the current shield/weapon. Blocking stays on until stopped with active=false (or logout). Blocking within 0.25s of an incoming hit triggers a parry.")]
         public object Block(
             [ToolParameter(Description = "true to start blocking, false to stop")] bool active) => WithPlayer(player =>
         {
-            player.SetControls(Vector3.zero,
-                attack: false, attackHold: false, secondaryAttack: false, secondaryAttackHold: false,
-                block: false, blockHold: active, jump: false, crouch: false, run: false, autoRun: false);
-            return new { success = true, message = active ? "Blocking started" : "Blocking stopped", isBlocking = player.IsBlocking() };
+            var problem = BlockHold.Set(player, active);
+            if (problem != null) return Fail(problem);
+            return new { success = true, message = active ? "Blocking (held until player/block active=false)" : "Blocking stopped", isBlocking = player.IsBlocking() };
         });
 
         [Tool("player/look_at_position", Description = "Face the player toward a world position (XZ plane).")]
@@ -453,13 +453,19 @@ namespace ValAgentBridge.Tools
         {
             var dir = new Vector3(x, 0f, z);
             if (dir.magnitude < 0.01f) dir = -player.GetLookDir(); // default: dodge backward
+            dir.y = 0f;
             dir.Normalize();
-            player.SetMoveDir(dir);
+            // SetControls reads its direction relative to where the player looks (z = forward, x = right).
+            var look = player.GetLookDir();
+            look.y = 0f;
+            look.Normalize();
+            var right = Vector3.Cross(Vector3.up, look);
+            var input = new Vector3(Vector3.Dot(dir, right), 0f, Vector3.Dot(dir, look));
             // A dodge is block + jump in the same frame.
-            player.SetControls(dir,
+            player.SetControls(input,
                 attack: false, attackHold: false, secondaryAttack: false, secondaryAttackHold: false,
                 block: true, blockHold: true, jump: true, crouch: false, run: false, autoRun: false);
-            return new { success = true, message = "Dodge initiated" };
+            return new { success = true, message = "Dodge initiated", direction = Vec(dir) };
         });
 
         [Tool("player/set_crouch", Description = "Toggle crouching/sneaking on or off.")]
@@ -537,7 +543,7 @@ namespace ValAgentBridge.Tools
             });
         }
 
-        [Tool("player/place_piece", Description = "Place a building piece at a position. Requires hammer equipped and appropriate crafting station nearby.")]
+        [Tool("player/place_piece", Description = "(cheat) Place a building piece at a position, free: no materials used and no crafting station or build-area check. Needs a building tool (e.g. hammer) equipped, whose pieces are searched.")]
         public object PlacePiece(
             [ToolParameter(Description = "Piece prefab name (e.g. 'wood_wall', 'wood_floor')")] string pieceName,
             [ToolParameter(Description = "X position")] float x,
@@ -556,7 +562,8 @@ namespace ValAgentBridge.Tools
                             ?? pieces.FirstOrDefault(p => Contains(p.gameObject.name, pieceName));
                 if (piece == null) return Fail($"No building piece matching '{pieceName}'");
 
-                player.PlacePiece(piece, new Vector3(x, y, z), Quaternion.Euler(0f, rotation, 0f));
+                player.PlacePiece(piece, new Vector3(x, y, z), Quaternion.Euler(0f, rotation, 0f), doAttack: true, cheated: true);
+                ValAgentBridgePlugin.ModLogger.LogInfo($"player/place_piece: {piece.gameObject.name} at ({x:F1}, {y:F1}, {z:F1})");
                 return new { success = true, message = $"Placed {piece.gameObject.name} at ({x:F1}, {y:F1}, {z:F1})" };
             });
         }

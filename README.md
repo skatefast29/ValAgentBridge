@@ -25,6 +25,9 @@ What the agent can do through it:
 
 Cheat console commands run only with `allowCheats` or when devcommands is already on.
 
+Clearing hostile creatures is off by default. When testing starts the agent offers to turn it on, so a creature
+can't kill the character mid-test; say no if you are testing creatures.
+
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) (MIT, see [LICENSE](LICENSE)),
 rebuilt for Valheim 1.0 on Windows and extended. What changed is in [CHANGELOG.md](CHANGELOG.md).
 
