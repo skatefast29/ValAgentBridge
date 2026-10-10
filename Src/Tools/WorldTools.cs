@@ -7,7 +7,7 @@ using HarmonyLib;
 using Lib.GAB.Tools;
 using UnityEngine.SceneManagement;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     // Main menu -> world and back, so a test can run without anyone clicking through the menus.
     // Drives FejdStartup the same way its buttons do (OnStartGame -> OnCharacterStart -> OnWorldStart).
@@ -164,7 +164,7 @@ namespace ValBridgeServer.Tools
                 if (sameChar && sameWorld)
                     return new { success = true, alreadyThere = true, s.character, s.world, seconds = Math.Round(clock.Elapsed.TotalSeconds, 1) };
 
-                ValBridgeServerPlugin.ModLogger.LogInfo($"world/enter: logging out of {s.world} ({s.character}) first");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"world/enter: logging out of {s.world} ({s.character}) first");
                 var logout = MainThreadDispatcher.RunTool(() =>
                 {
                     if (Game.instance != null) Game.instance.Logout();
@@ -267,7 +267,7 @@ namespace ValBridgeServer.Tools
                 if (!PlayerProfile.HaveProfile(character.ToLowerInvariant()))
                     return $"The game did not create character '{character}' (name taken or not allowed?). Take screen/capture.";
                 created.Add("character " + character);
-                ValBridgeServerPlugin.ModLogger.LogInfo($"world/enter: created character {character}");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"world/enter: created character {character}");
             }
 
             if (world.Length > 0 && !World.HaveWorld(world))
@@ -281,7 +281,7 @@ namespace ValBridgeServer.Tools
                 if (!World.HaveWorld(world))
                     return $"The game did not create world '{world}' (a popup may be open). Take screen/capture.";
                 created.Add("world " + world);
-                ValBridgeServerPlugin.ModLogger.LogInfo($"world/enter: created world {world} (seed {fs.m_newWorldSeed.text})");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"world/enter: created world {world} (seed {fs.m_newWorldSeed.text})");
             }
             return null;
         }
@@ -337,7 +337,7 @@ namespace ValBridgeServer.Tools
             if (!StartingWorld(fs))
                 return (false, "The menu did not start the world; a popup (cloud storage warning, login) is probably waiting. Check world/status or take a screenshot.", null, null);
 
-            ValBridgeServerPlugin.ModLogger.LogInfo($"world/load: {profile.GetName()} into {target.m_name}");
+            ValAgentBridgePlugin.ModLogger.LogInfo($"world/load: {profile.GetName()} into {target.m_name}");
             return (true, null, profile.GetName(), target.m_name);
         }
 

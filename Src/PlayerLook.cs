@@ -1,7 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// Turning the player and camera. The camera follows Character.m_lookYaw and Player.m_lookPitch (both private);

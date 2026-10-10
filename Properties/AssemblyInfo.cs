@@ -1,35 +1,16 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-// General Information about an assembly is controlled through the following
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
-[assembly: AssemblyTitle("ValBridgeServer")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("ValAgentBridge")]
+[assembly: AssemblyDescription("Lets an AI agent automate and monitor mod testing in a running Valheim")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("ValBridgeServer")]
-[assembly: AssemblyCopyright("Copyright ©  2023")]
+[assembly: AssemblyCompany("BarryWhite")]
+[assembly: AssemblyProduct("ValAgentBridge")]
+[assembly: AssemblyCopyright("Copyright (c) 2026 BarryWhite")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-
-// Setting ComVisible to false makes the types in this assembly not visible
-// to COM components.  If you need to access a type in this assembly from
-// COM, set the ComVisible attribute to true on that type.
 [assembly: ComVisible(false)]
+[assembly: Guid("7c1e3b52-9a4d-4f0e-8b6a-2d5f1c9e4a37")]
 
-// The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("4B20385F-D329-41AF-94F5-47CA3F2CD4F4")]
-
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version
-//      Build Number
-//      Revision
-//
-// You can specify all the values or you can default the Build and Revision Numbers
-// by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.4.2")]
-[assembly: AssemblyFileVersion("1.4.2")]
+[assembly: AssemblyVersion("1.5.0")]
+[assembly: AssemblyFileVersion("1.5.0")]

@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     public class MovementManager : MonoBehaviour
     {
@@ -14,7 +14,7 @@ namespace ValBridgeServer
             {
                 if (_instance == null)
                 {
-                    var go = new GameObject("ValBridgeServer_MovementManager");
+                    var go = new GameObject("ValAgentBridge_MovementManager");
                     _instance = go.AddComponent<MovementManager>();
                     DontDestroyOnLoad(go);
                 }

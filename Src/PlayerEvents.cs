@@ -3,7 +3,7 @@ using HarmonyLib;
 using Lib.GAB.Events;
 using UnityEngine;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// Fills the "player/death" and "player/health_changed" event channels (they existed but nothing sent them),
@@ -23,7 +23,7 @@ namespace ValBridgeServer
             if (onDeath != null)
                 harmony.Patch(onDeath, postfix: new HarmonyMethod(typeof(PlayerEvents), nameof(OnDeathPostfix)));
             else
-                ValBridgeServerPlugin.ModLogger.LogWarning("Player.OnDeath not found; player/death events won't be sent.");
+                ValAgentBridgePlugin.ModLogger.LogWarning("Player.OnDeath not found; player/death events won't be sent.");
         }
 
         /// <summary>Called from the plugin's Update (main thread).</summary>

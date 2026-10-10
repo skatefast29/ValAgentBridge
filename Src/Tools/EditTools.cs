@@ -5,7 +5,7 @@ using Lib.GAB.Tools;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     // Writing live state. Dev-profile tool: every change is logged, nothing is saved unless the game saves it.
     public class EditTools
@@ -20,7 +20,7 @@ namespace ValBridgeServer.Tools
                 var end = Inspector.ResolvePath(path, out var error);
                 if (end == null) return new { success = false, error };
                 if (!Inspector.Write(end, value, out var before, out var after, out error)) return new { success = false, error };
-                ValBridgeServerPlugin.ModLogger.LogInfo($"debug/set_value: {path}: {before} -> {after}");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"debug/set_value: {path}: {before} -> {after}");
                 return new { success = true, path, before = Inspector.Describe(before, 1), after = Inspector.Describe(after, 1) };
             });
         }
@@ -70,7 +70,7 @@ namespace ValBridgeServer.Tools
                     try
                     {
                         var result = m.Invoke(m.IsStatic ? null : instance, values);
-                        ValBridgeServerPlugin.ModLogger.LogInfo($"debug/call_method: {type.Name}.{m.Name}({args})");
+                        ValAgentBridgePlugin.ModLogger.LogInfo($"debug/call_method: {type.Name}.{m.Name}({args})");
                         return new { success = true, method = $"{type.Name}.{m.Name}", returned = m.ReturnType == typeof(void) ? null : Inspector.Describe(result, Mathf.Clamp(depth, 0, 4)) };
                     }
                     catch (Exception ex)

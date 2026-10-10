@@ -1,6 +1,6 @@
-# ValBridge
+# ValAgentBridge
 
-ValBridge was made to help with modding Valheim: it lets an AI agent automate and monitor the testing of mods.
+ValAgentBridge was made to help with modding Valheim: it lets an AI agent automate and monitor the testing of mods.
 Instead of launching the game, loading a world and checking things by hand after every change, you ask the agent
 (Claude Code, through the GABS MCP server) and it does it in the running game: starts it, gets into a world, tries
 things out, runs scripted tests with pass/fail reports, and watches the log, on-screen messages and the mods
@@ -29,11 +29,11 @@ rebuilt for Valheim 1.0 on Windows and extended. What changed is in [CHANGELOG.m
 ## How it fits together
 
 ```
-AI agent (Claude Code) --MCP--> GABS --GABP (TCP, localhost)--> ValBridge inside valheim.exe
+AI agent (Claude Code) --MCP--> GABS --GABP (TCP, localhost)--> ValAgentBridge inside valheim.exe
 ```
 
-[GABS](https://github.com/pardeike/GABS) starts the game with a port and token in the environment; ValBridge reads
-them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manager), ValBridge does nothing: no patches, no listener, no per-frame work.
+[GABS](https://github.com/pardeike/GABS) starts the game with a port and token in the environment; ValAgentBridge reads
+them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manager), ValAgentBridge does nothing: no patches, no listener, no per-frame work.
 
 ## Requirements
 
@@ -44,8 +44,8 @@ them and listens on `127.0.0.1`. Started any other way (e.g. from the mod manage
 
 ## Install from a release
 
-Download `ValBridge-<version>.zip` from the [releases page](https://github.com/skatefast29/ValBridge/releases) and
-copy its `BepInEx\plugins\ValBridge` folder into a profile's `BepInEx\plugins` folder (your mod manager can open
+Download `ValAgentBridge-<version>.zip` from the [releases page](https://github.com/skatefast29/ValAgentBridge/releases) and
+copy its `BepInEx\plugins\ValAgentBridge` folder into a profile's `BepInEx\plugins` folder (your mod manager can open
 the profile's folder), with the game closed. The profile also needs ValheimModding-JsonDotNET. Then set up GABS as described under [Using it](#using-it).
 
 ## Build and install
@@ -56,9 +56,9 @@ The game must be closed (the DLL is locked while it runs).
 dotnet build -c Release -p:Deploy=true
 ```
 
-Builds against the game's real DLLs and copies `ValBridgeServer.dll`, `Lib.GAB.dll` and `Gabp.Runtime.dll` into
-`<profile>\BepInEx\plugins\ValBridge\`, and `tests\*.json` into `<profile>\BepInEx\ValBridge\tests\`. Paths are
-MSBuild properties in `ValBridge.csproj` (`ValheimDir`, `GaleProfile`; default profile: Gale's `Performance Test`).
+Builds against the game's real DLLs and copies `ValAgentBridge.dll`, `Lib.GAB.dll` and `Gabp.Runtime.dll` into
+`<profile>\BepInEx\plugins\ValAgentBridge\`, and `tests\*.json` into `<profile>\BepInEx\ValAgentBridge\tests\`. Paths are
+MSBuild properties in `ValAgentBridge.csproj` (`ValheimDir`, `GaleProfile`; default profile: Gale's `Performance Test`).
 The DLLs are also copied into every other Gale profile that already has the bridge installed, so no profile is left
 on an old version. BepInEx, Harmony and Json.NET are referenced from the first Gale profile that has them, so
 building works even if the deploy profile doesn't exist.
@@ -93,7 +93,7 @@ that profile through GABS, and drive the game with the tools here. A mod can als
 
 ### Suggested companion: ValPerfMonitor (optional)
 
-ValBridge works on its own and doesn't need any other mod. If you also test performance, it pairs well with
+ValAgentBridge works on its own and doesn't need any other mod. If you also test performance, it pairs well with
 [ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor), which measures what each installed mod and
 each part of Valheim costs: CPU time, memory allocations, load times and network. With both in the same
 profile, the monitor adds its own `perf/*` tools to the bridge, so an agent can run a whole measurement without
@@ -105,7 +105,7 @@ All tools: [TOOLS.md](TOOLS.md).
 
 ## Files written in the profile
 
-`<profile>\BepInEx\ValBridge\`: `screenshots\` (last 30), `tests\` (scripts), `test-results\` (reports).
+`<profile>\BepInEx\ValAgentBridge\`: `screenshots\` (last 30), `tests\` (scripts), `test-results\` (reports).
 
 Scripts that come with the bridge (`tests\`, copied on deploy and built into the bridge, so they work in any
 profile):

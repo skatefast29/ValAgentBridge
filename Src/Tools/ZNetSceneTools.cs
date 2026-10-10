@@ -4,7 +4,7 @@ using System.Linq;
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     // Network prefabs (everything that can exist in the world) by name, e.g. to find a creature for world/spawn_creature.
     public class ZNetSceneTools

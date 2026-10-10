@@ -2,6 +2,13 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.5.0
+- Renamed to ValAgentBridge: installs in `BepInEx\plugins\ValAgentBridge`, keeps screenshots, test scripts and
+  reports in `BepInEx\ValAgentBridge`.
+- Available as a Thunderstore package (`thunderstore\`: manifest, icon, README); `tools\package.ps1` builds the
+  release zips.
+- The bundled `inventory-items-console` test works whatever the character's health is.
+
 ## 1.4.2
 - README: opens with what the mod is for (automating and monitoring mod testing); how cheat commands are handled;
   install from a release.

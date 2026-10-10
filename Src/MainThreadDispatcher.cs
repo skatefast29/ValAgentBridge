@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// GABP requests arrive on a network thread, but Unity only allows game objects, transforms and Time on the
@@ -22,7 +22,7 @@ namespace ValBridgeServer
             {
                 if (_instance == null)
                 {
-                    var go = new GameObject("ValBridgeServer_MainThreadDispatcher");
+                    var go = new GameObject("ValAgentBridge_MainThreadDispatcher");
                     _instance = go.AddComponent<MainThreadDispatcher>();
                     DontDestroyOnLoad(go);
                 }
@@ -98,7 +98,7 @@ namespace ValBridgeServer
             while (ExecutionQueue.TryDequeue(out var action))
             {
                 try { action(); }
-                catch (Exception e) { ValBridgeServerPlugin.ModLogger.LogError($"Queued bridge work failed: {e}"); }
+                catch (Exception e) { ValAgentBridgePlugin.ModLogger.LogError($"Queued bridge work failed: {e}"); }
             }
         }
     }

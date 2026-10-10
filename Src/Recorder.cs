@@ -4,7 +4,7 @@ using System.Linq;
 using BepInEx.Logging;
 using HarmonyLib;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// Keeps the recent game log and on-screen messages in memory, numbered, so tools can ask
@@ -74,7 +74,7 @@ namespace ValBridgeServer
             if (show != null)
                 harmony.Patch(show, postfix: new HarmonyMethod(typeof(Recorder), nameof(ShowMessagePostfix)));
             else
-                ValBridgeServerPlugin.ModLogger.LogWarning("MessageHud.ShowMessage not found; ui/messages will stay empty.");
+                ValAgentBridgePlugin.ModLogger.LogWarning("MessageHud.ShowMessage not found; ui/messages will stay empty.");
             var addString = AccessTools.Method(typeof(Terminal), nameof(Terminal.AddString), new[] { typeof(string) });
             if (addString != null)
                 harmony.Patch(addString, postfix: new HarmonyMethod(typeof(Recorder), nameof(AddStringPostfix)));

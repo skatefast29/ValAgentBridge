@@ -32,6 +32,6 @@
     { "wait": 0.8 },
     { "call": "debug/call_method", "args": { "target": "Player.m_localPlayer", "method": "SetHealth", "args": "[${hp.health}]" } },
     { "call": "events/read", "args": { "since": "${ev.last}", "channel": "player/health_changed" }, "expect": [ { "path": "count", "greaterThan": 0 } ] },
-    { "call": "player/get_health", "expect": [ { "path": "health", "greaterThan": 20 } ] }
+    { "call": "player/get_health", "expect": [ { "path": "health", "notEquals": 15 } ] }
   ]
 }

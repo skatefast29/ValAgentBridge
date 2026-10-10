@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     public class NavigationManager : MonoBehaviour
     {
@@ -15,7 +15,7 @@ namespace ValBridgeServer
             {
                 if (_instance == null)
                 {
-                    var go = new GameObject("ValBridgeServer_NavigationManager");
+                    var go = new GameObject("ValAgentBridge_NavigationManager");
                     _instance = go.AddComponent<NavigationManager>();
                     DontDestroyOnLoad(go);
                 }
@@ -48,7 +48,7 @@ namespace ValBridgeServer
             _isNavigating = true;
             _tcs = new TaskCompletionSource<object>();
 
-            ValBridgeServerPlugin.ModLogger.LogInfo(
+            ValAgentBridgePlugin.ModLogger.LogInfo(
                 $"Navigation started to ({target.x:F1}, {target.z:F1}), timeout={timeout}s");
 
             return _tcs.Task;
@@ -70,7 +70,7 @@ namespace ValBridgeServer
 
             if (reason != null)
             {
-                ValBridgeServerPlugin.ModLogger.LogInfo($"Navigation stopped: {reason}");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"Navigation stopped: {reason}");
             }
         }
 

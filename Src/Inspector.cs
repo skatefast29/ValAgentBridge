@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// Turns live objects into JSON-friendly trees for the debug tools. Reads fields only (never runs property

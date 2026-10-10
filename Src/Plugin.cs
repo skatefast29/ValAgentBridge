@@ -7,9 +7,9 @@ using Lib.GAB.Server;
 using HarmonyLib;
 using Lib.GAB.Tools;
 using Newtonsoft.Json;
-using ValBridgeServer.Tools;
+using ValAgentBridge.Tools;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// GABP bridge configuration from environment variables or bridge.json
@@ -27,11 +27,11 @@ namespace ValBridgeServer
     }
 
     [BepInPlugin(ModGUID, ModName, ModVersion)]
-    public class ValBridgeServerPlugin : BaseUnityPlugin
+    public class ValAgentBridgePlugin : BaseUnityPlugin
     {
-        private const string ModName = "ValBridgeServer";
-        private const string ModVersion = "1.4.2";
-        private const string Author = "warpalicious";
+        private const string ModName = "ValAgentBridge";
+        private const string ModVersion = "1.5.0";
+        private const string Author = "BarryWhite";
         private const string ModGUID = Author + "." + ModName;
 
         public static readonly ManualLogSource ModLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);

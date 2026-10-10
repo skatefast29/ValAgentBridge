@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     public class PlayerTools
     {
@@ -127,7 +127,7 @@ namespace ValBridgeServer.Tools
                     if (inv.AddItem(prefab.name, chunk, 1, 0, 0L, "", cheated: true) == null) break;
                     given += chunk;
                 }
-                ValBridgeServerPlugin.ModLogger.LogInfo($"player/give_item: {given}/{amount} {prefab.name}");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"player/give_item: {given}/{amount} {prefab.name}");
                 return new
                 {
                     success = given > 0,

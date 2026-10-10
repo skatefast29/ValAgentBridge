@@ -7,7 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     // What's on screen as data: popups, buttons, toggles and the messages the game showed.
     public class UiTools
@@ -65,7 +65,7 @@ namespace ValBridgeServer.Tools
                 var hit = hits[0];
                 if (hit.selectable is Button b) b.onClick.Invoke();
                 else if (hit.selectable is Toggle t) t.isOn = !t.isOn;
-                ValBridgeServerPlugin.ModLogger.LogInfo($"ui/click: '{hit.label}' ({hit.path})");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"ui/click: '{hit.label}' ({hit.path})");
                 return new { success = true, clicked = hit.label, kind = hit.kind, path = hit.path };
             });
         }

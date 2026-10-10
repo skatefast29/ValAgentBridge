@@ -1,7 +1,7 @@
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     // Single player only: the game refuses to pause or change speed while other players are connected.
     public class TimeTools

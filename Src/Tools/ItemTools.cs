@@ -4,7 +4,7 @@ using System.Linq;
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     // Item stats from the game's item database (vanilla and modded items alike), in short answers.
     public class ItemTools

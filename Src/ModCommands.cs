@@ -7,7 +7,7 @@ using BepInEx.Bootstrap;
 using Lib.GAB.Tools;
 using Newtonsoft.Json.Linq;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// Lets any mod add bridge commands without referencing the bridge: the mod declares its own tiny
@@ -56,7 +56,7 @@ namespace ValBridgeServer
                 }
             }
             if (All.Count > 0)
-                ValBridgeServerPlugin.ModLogger.LogInfo($"Mod commands: {All.Count(f => f.registered)} registered, {All.Count(f => !f.registered)} skipped");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"Mod commands: {All.Count(f => f.registered)} registered, {All.Count(f => !f.registered)} skipped");
         }
 
         private static void Register(IToolRegistry registry, string mod, MethodInfo method, object attr)
@@ -73,13 +73,13 @@ namespace ValBridgeServer
             if (!ToolNameValidator.IsValid(found.name))
             {
                 found.problem = $"name '{found.name}' must look like 'mymod/do_thing' (lowercase, at least one '/')";
-                ValBridgeServerPlugin.ModLogger.LogWarning($"Mod command from {mod} skipped: {found.problem}");
+                ValAgentBridgePlugin.ModLogger.LogWarning($"Mod command from {mod} skipped: {found.problem}");
                 return;
             }
             if (registry.HasTool(found.name))
             {
                 found.problem = "a command with this name already exists";
-                ValBridgeServerPlugin.ModLogger.LogWarning($"Mod command {found.name} from {mod} skipped: {found.problem}");
+                ValAgentBridgePlugin.ModLogger.LogWarning($"Mod command {found.name} from {mod} skipped: {found.problem}");
                 return;
             }
 

@@ -8,7 +8,7 @@ using BepInEx.Bootstrap;
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     // Reading other mods: their BepInEx settings and, through reflection, their live state.
     public class ModTools
@@ -75,7 +75,7 @@ namespace ValBridgeServer.Tools
                 var before = entry.GetSerializedValue();
                 entry.SetSerializedValue(value);
                 var after = entry.GetSerializedValue();
-                ValBridgeServerPlugin.ModLogger.LogInfo($"mods/set_config: {plugin.Metadata.Name} [{def.Section}] {def.Key}: {before} -> {after}");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"mods/set_config: {plugin.Metadata.Name} [{def.Section}] {def.Key}: {before} -> {after}");
                 return new { success = true, mod = plugin.Metadata.Name, section = def.Section, key = def.Key, before, after, accepted = after != before || after == value };
             });
         }

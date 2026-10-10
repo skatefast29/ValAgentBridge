@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// Inventories of equipped backpacks from backpack mods, through their public APIs, by reflection so the bridge
@@ -58,7 +58,7 @@ namespace ValBridgeServer
             var method = AccessTools.Method(api, "GetEquippedBackpackInventory", args);
             if (method == null || !method.IsStatic || method.ReturnType != typeof(Inventory))
             {
-                ValBridgeServerPlugin.ModLogger.LogWarning($"{mod} API changed (GetEquippedBackpackInventory); its backpack contents won't be shown.");
+                ValAgentBridgePlugin.ModLogger.LogWarning($"{mod} API changed (GetEquippedBackpackInventory); its backpack contents won't be shown.");
                 return;
             }
             _sources!.Add(new Source { mod = mod, method = method, takesPlayer = args.Length == 1 });

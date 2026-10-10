@@ -7,12 +7,12 @@ using BepInEx;
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     public class ScreenTools
     {
         private const int KeepFiles = 30;
-        private static string Folder => Path.Combine(Paths.BepInExRootPath, "ValBridge", "screenshots");
+        private static string Folder => Path.Combine(Paths.BepInExRootPath, "ValAgentBridge", "screenshots");
 
         [Tool("screen/capture", Description = "Take a screenshot of the game window (menus and HUD included). Saves a JPG and returns its file path so it can be opened and viewed.")]
         public object Capture(

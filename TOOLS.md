@@ -1,4 +1,4 @@
-# ValBridge tool reference
+# ValAgentBridge tool reference
 
 All tools are called through GABS (`games_call_tool`). GABS shows them with a game prefix and underscores, e.g.
 `player/get_health` is `valheim_player_get_health`. Every answer has `success`; failures carry an `error` text.
@@ -82,7 +82,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 
 | Tool | What it does |
 |---|---|
-| `screen/capture` | Screenshot (JPG, default 1280 wide) to `BepInEx\ValBridge\screenshots\` (last 30 kept); returns the path |
+| `screen/capture` | Screenshot (JPG, default 1280 wide) to `BepInEx\ValAgentBridge\screenshots\` (last 30 kept); returns the path |
 | `ui/list` | The open popup's text and the visible clickable buttons/toggles (`includeHud` adds hotbar slots etc.) |
 | `ui/click` | Click a button or flip a toggle by id or label |
 | `ui/messages` | Messages the game showed on screen, numbered (`since` = only new ones) |
@@ -106,7 +106,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 ## Test scripts
 
 `test/run` takes a script inline (a JSON object, or the same as a string), `test/run_file` reads
-`BepInEx\ValBridge\tests\<name>.json` (the files in `tests\` are copied there on deploy and also built into the
+`BepInEx\ValAgentBridge\tests\<name>.json` (the files in `tests\` are copied there on deploy and also built into the
 bridge, so `enter-world`, `quick-check`, `inventory-items-console` and `world-controls` work in any profile), `test/list_files` lists them and the
 latest results.
 
@@ -137,7 +137,7 @@ latest results.
 - A failing step gets a screenshot (top-level `"screenshotOnFail": false` turns that off).
 - The answer lists every step (ok, failures, seconds, trimmed result), plus a summary of the warnings/errors
   logged, on-screen messages (identical lines once, with a count) and player events (count per channel, deaths,
-  the last few). The full report with every line is saved to `BepInEx\ValBridge\test-results\` (`reportFile`).
+  the last few). The full report with every line is saved to `BepInEx\ValAgentBridge\test-results\` (`reportFile`).
 - Calls with long waits need a longer GABS `timeout`.
 
 ## Commands from other mods

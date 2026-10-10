@@ -1,4 +1,4 @@
-# ValBridge
+# ValAgentBridge
 
 BepInEx mod that lets Claude drive a running Valheim through GABS (MCP `gabs` in `.mcp.json`). Fork of
 jneb802/ValBridgeServer (MIT), rebuilt for Valheim 1.0. Tools: `TOOLS.md`. History: `CHANGELOG.md`.

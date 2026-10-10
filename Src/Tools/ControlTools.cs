@@ -6,7 +6,7 @@ using System.Threading;
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     /// <summary>
     /// Test helpers that change the live game: teleport, spawn and remove creatures, time of day, weather, saving,
@@ -14,7 +14,7 @@ namespace ValBridgeServer.Tools
     /// </summary>
     public class ControlTools
     {
-        private static void Log(string text) => ValBridgeServerPlugin.ModLogger.LogInfo(text);
+        private static void Log(string text) => ValAgentBridgePlugin.ModLogger.LogInfo(text);
 
         [Tool("player/teleport", Description = "(cheat) Teleport the player to a world position; the game finds the ground (height is optional). Waits until the teleport has finished (far ones load the area first) and returns where the player ended up.")]
         public object Teleport(

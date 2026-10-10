@@ -1,6 +1,6 @@
 # Third-party notices
 
-ValBridge ships two libraries in `lib\` and in its release zip.
+ValAgentBridge ships two libraries in `lib\` and in its release zip.
 
 ## Lib.GAB 1.0.5
 

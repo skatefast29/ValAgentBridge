@@ -11,7 +11,7 @@ using Lib.GAB.Tools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     /// <summary>
     /// Runs a whole test as one call: a list of steps (bridge tool calls, waits, checks, screenshots),
@@ -20,8 +20,8 @@ namespace ValBridgeServer.Tools
     /// </summary>
     public class TestTools
     {
-        private static string TestsFolder => Path.Combine(Paths.BepInExRootPath, "ValBridge", "tests");
-        private static string ResultsFolder => Path.Combine(Paths.BepInExRootPath, "ValBridge", "test-results");
+        private static string TestsFolder => Path.Combine(Paths.BepInExRootPath, "ValAgentBridge", "tests");
+        private static string ResultsFolder => Path.Combine(Paths.BepInExRootPath, "ValAgentBridge", "test-results");
         private static readonly Regex VarPattern = new Regex(@"\$\{([A-Za-z_][A-Za-z0-9_]*)((?:\.[^}]+)?)\}");
 
         [Tool("test/run", Description = "Run a test script given as JSON: {\"name\":..., \"steps\":[...]}. Steps: {\"call\":\"tool/name\",\"args\":{}}, {\"wait\":seconds}, {\"waitUntil\":{\"call\":...,\"args\":{}},\"until\":[checks],\"timeout\":60} (or {\"waitUntil\":\"in_world\"} / \"main_menu\"), {\"screenshot\":true}, {\"note\":\"text\"}; any step may add \"expect\":[{\"path\":\"health\",\"greaterThan\":10}] and \"saveAs\":\"name\" (use ${name.path} in later args). Returns pass/fail per step plus a summary of warnings, errors, on-screen messages and events from the run (repeats counted, full detail in reportFile); a failing step gets a screenshot (top-level \"screenshotOnFail\": false turns that off). Top-level \"clearHostiles\": 50 removes hostile creatures within 50 m first and \"keepClear\": 50 keeps doing so every 10 s; \"protect\": true keeps the player from taking damage or being noticed by creatures during the run, then restores.")]
@@ -34,7 +34,7 @@ namespace ValBridgeServer.Tools
             return Execute(parsed, "inline");
         }
 
-        [Tool("test/run_file", Description = "Run a saved test script from BepInEx\\ValBridge\\tests (name with or without .json), or from a full path. The scripts that come with the bridge (enter-world, quick-check, inventory-items-console, world-controls) work in any profile.")]
+        [Tool("test/run_file", Description = "Run a saved test script from BepInEx\\ValAgentBridge\\tests (name with or without .json), or from a full path. The scripts that come with the bridge (enter-world, quick-check, inventory-items-console, world-controls) work in any profile.")]
         public object RunFile(
             [ToolParameter(Description = "File name in the tests folder, or a full path")] string name)
         {
@@ -119,7 +119,7 @@ namespace ValBridgeServer.Tools
             var clock = Stopwatch.StartNew();
             JToken? last = null;
             bool passed = true;
-            ValBridgeServerPlugin.ModLogger.LogInfo($"test/run '{name}': {steps.Count} steps");
+            ValAgentBridgePlugin.ModLogger.LogInfo($"test/run '{name}': {steps.Count} steps");
 
             for (int i = 0; i < steps.Count; i++)
             {
@@ -220,7 +220,7 @@ namespace ValBridgeServer.Tools
             if (protectedBefore != null)
             {
                 try { Call("player/set_protection", new JObject { ["god"] = protectedBefore.Value<bool>("god").ToString(), ["ghost"] = protectedBefore.Value<bool>("ghost").ToString() }); }
-                catch (Exception ex) { ValBridgeServerPlugin.ModLogger.LogWarning($"test/run '{name}': could not restore protection: {ex.Message}"); }
+                catch (Exception ex) { ValAgentBridgePlugin.ModLogger.LogWarning($"test/run '{name}': could not restore protection: {ex.Message}"); }
             }
 
             var result = new JObject
@@ -253,7 +253,7 @@ namespace ValBridgeServer.Tools
             result["messages"] = Group((JArray)result["messages"]!, "type", 15);
             result["events"] = SummariseEvents((JArray)result["events"]!);
             result["reportFile"] = reportFile;
-            ValBridgeServerPlugin.ModLogger.LogInfo($"test/run '{name}': {(passed ? "PASSED" : "FAILED")} after {report.Count} step(s)");
+            ValAgentBridgePlugin.ModLogger.LogInfo($"test/run '{name}': {(passed ? "PASSED" : "FAILED")} after {report.Count} step(s)");
             return result;
         }
 
@@ -261,7 +261,7 @@ namespace ValBridgeServer.Tools
         {
             tool = tool.Replace('.', '/');
             if (tool.StartsWith("test/")) throw new InvalidOperationException("a test can't run another test");
-            var registry = ValBridgeServerPlugin.Tools ?? throw new InvalidOperationException("bridge not started");
+            var registry = ValAgentBridgePlugin.Tools ?? throw new InvalidOperationException("bridge not started");
             if (!registry.HasTool(tool))
                 throw new InvalidOperationException($"no tool '{tool}'. Closest: {string.Join(", ", ToolGuard.Suggest(registry, tool))}");
             var result = registry.CallToolAsync(tool, args as JObject ?? new JObject()).GetAwaiter().GetResult();

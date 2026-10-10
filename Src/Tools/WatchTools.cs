@@ -8,7 +8,7 @@ using HarmonyLib;
 using Lib.GAB.Tools;
 using UnityEngine;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     /// <summary>
     /// Watches calls to any game or mod method by patching it at runtime: counts every call and records
@@ -40,7 +40,7 @@ namespace ValBridgeServer.Tools
             public readonly Stopwatch clock = Stopwatch.StartNew();
         }
 
-        private static readonly Harmony WatchHarmony = new Harmony("valbridge.watch");
+        private static readonly Harmony WatchHarmony = new Harmony("BarryWhite.ValAgentBridge.watch");
         private static readonly ConcurrentDictionary<MethodBase, Watch> ByMethod = new ConcurrentDictionary<MethodBase, Watch>();
         private static int _nextId;
 
@@ -96,7 +96,7 @@ namespace ValBridgeServer.Tools
                         id = w.id,
                         note = il >= 0 && il < 20 ? $"tiny method ({il} bytes of IL): Mono may inline it, so calls from other code may not be seen" : null
                     });
-                    ValBridgeServerPlugin.ModLogger.LogInfo($"debug/watch_start #{w.id}: {label}");
+                    ValAgentBridgePlugin.ModLogger.LogInfo($"debug/watch_start #{w.id}: {label}");
                 }
                 return new { success = true, watches = started };
             });

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Lib.GAB.Tools;
 using Newtonsoft.Json.Linq;
 
-namespace ValBridgeServer
+namespace ValAgentBridge
 {
     /// <summary>
     /// Lib.GAB silently drops arguments with a name the tool doesn't have, so a guessed name ("path" for "target")

@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     /// <summary>
     /// Presses keys as if typed, so mod hotkeys (F11 panels, toggles) and game keys can be tested without anyone at
@@ -73,7 +73,7 @@ namespace ValBridgeServer.Tools
             }
             MainThreadDispatcher.Run(() => { foreach (var k in all) Keys.Remove(k); return 0; }, 5000);
 
-            ValBridgeServerPlugin.ModLogger.LogInfo($"input/press_key: {string.Join("+", all)}");
+            ValAgentBridgePlugin.ModLogger.LogInfo($"input/press_key: {string.Join("+", all)}");
             return new
             {
                 success = true,
@@ -145,7 +145,7 @@ namespace ValBridgeServer.Tools
             try
             {
                 var reader = UnityInput.Current.GetType();
-                var harmony = new Harmony("warpalicious.ValBridgeServer.input");
+                var harmony = new Harmony("BarryWhite.ValAgentBridge.input");
                 foreach (var (method, postfix) in new[] { ("GetKey", nameof(KeyPostfix)), ("GetKeyDown", nameof(KeyDownPostfix)), ("GetKeyUp", nameof(KeyUpPostfix)) })
                 {
                     var target = AccessTools.Method(reader, method, new[] { typeof(KeyCode) });
@@ -153,12 +153,12 @@ namespace ValBridgeServer.Tools
                     harmony.Patch(target, postfix: new HarmonyMethod(typeof(InputTools), postfix));
                 }
                 _patched = true;
-                ValBridgeServerPlugin.ModLogger.LogInfo($"input/press_key: patched {reader.Name} for simulated mod hotkeys");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"input/press_key: patched {reader.Name} for simulated mod hotkeys");
             }
             catch (Exception ex)
             {
                 _patchProblem = "Mod hotkeys not reached: " + ex.Message;
-                ValBridgeServerPlugin.ModLogger.LogWarning(_patchProblem);
+                ValAgentBridgePlugin.ModLogger.LogWarning(_patchProblem);
             }
         }
 

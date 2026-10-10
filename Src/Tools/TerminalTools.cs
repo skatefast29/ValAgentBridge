@@ -4,7 +4,7 @@ using System.Linq;
 using HarmonyLib;
 using Lib.GAB.Tools;
 
-namespace ValBridgeServer.Tools
+namespace ValAgentBridge.Tools
 {
     public class TerminalTools
     {
@@ -44,7 +44,7 @@ namespace ValBridgeServer.Tools
                 var ran = !output.Any(l => l.IndexOf("is not valid in the current context", StringComparison.OrdinalIgnoreCase) >= 0 ||
                                           l.IndexOf("is not a recognized command", StringComparison.OrdinalIgnoreCase) >= 0);
                 var note = needCheats ? " (cheats on for this command)" : isCheat ? " (cheat; devcommands already on)" : "";
-                ValBridgeServerPlugin.ModLogger.LogInfo($"console/run_command: {command}{note} -> {(ran ? "ran" : "refused")}");
+                ValAgentBridgePlugin.ModLogger.LogInfo($"console/run_command: {command}{note} -> {(ran ? "ran" : "refused")}");
                 return new
                 {
                     success = ran,
