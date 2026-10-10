@@ -1,6 +1,6 @@
 {
   "name": "ValAgentBridge",
-  "version_number": "1.5.2",
+  "version_number": "1.5.3",
   "website_url": "https://github.com/skatefast29/ValAgentBridge",
   "description": "For mod developers: lets an AI agent automate and monitor mod testing in a running Valheim (enter worlds, act as the player, run console commands and test scripts, read logs). Needs GABS and Claude Code; setup on GitHub.",
   "dependencies": [

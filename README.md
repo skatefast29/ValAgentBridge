@@ -9,7 +9,17 @@ themselves while it does.
 > **For mod developers.** Needs [GABS](https://github.com/pardeike/GABS) (the MCP server that starts the game and
 > connects the agent) and an AI agent such as Claude Code.
 
-What the agent can do through it:
+## Best with ValPerfMonitor
+
+ValAgentBridge pairs well with [ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor), which measures what
+each installed mod and each part of Valheim costs: CPU time, memory allocations, load times and network. With both in
+the same profile, the monitor adds its own `perf/*` tools to the bridge, so an agent can run a whole performance
+measurement without anyone at the keyboard: get into the world, run the monitor's test suite or a live A/B test of a
+change, and read the results. Optional: the bridge works on its own.
+
+## What the agent can do
+
+
 
 - **Game:** enter a world in one call, create characters and worlds, load, save, log out
 - **Movement:** walk, pathfind, jump, look, teleport
@@ -96,15 +106,10 @@ Any mod project can use the bridge to test itself: install the bridge in the pro
 that profile through GABS, and drive the game with the tools here. A mod can also add its own tools with
 `[BridgeTool]` (see [TOOLS.md](TOOLS.md)), without a reference to this project.
 
-### Suggested companion: ValPerfMonitor (optional)
+### With ValPerfMonitor
 
-If you also test performance, ValAgentBridge pairs well with
-[ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor), which measures what each installed mod and
-each part of Valheim costs: CPU time, memory allocations, load times and network. With both in the same
-profile, the monitor adds its own `perf/*` tools to the bridge, so an agent can run a whole measurement without
-anyone at the keyboard: get into the world, clear creatures, run the monitor's test suite or a live A/B test of a change,
-and read the results (`perf/start_suite`, `perf/results`, `perf/ab_test`, `perf/load_times`, `perf/objects` and
-more; `mods/list_commands` shows them all).
+Its tools include `perf/start_suite`, `perf/results`, `perf/ab_test`, `perf/load_times` and `perf/objects`;
+`mods/list_commands` shows them all once both mods are in the profile.
 
 All tools: [TOOLS.md](TOOLS.md).
 

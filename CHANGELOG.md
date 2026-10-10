@@ -2,6 +2,9 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.5.3
+- No changes to the mod.
+
 ## 1.5.2
 - New `world/keep_clear`: keeps removing hostile creatures near the player for the whole session, so one can't kill
   the character mid-test. Off by default; `world/enter` answers with `askOwner` until it is set, so the agent offers

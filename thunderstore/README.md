@@ -7,6 +7,14 @@ Instead of launching the game, loading a world and checking things by hand after
 > **For mod developers.** Needs [GABS](https://github.com/pardeike/GABS) (not on Thunderstore) and an AI agent such
 > as Claude Code. Setup, the full tool list and test scripts: [GitHub](https://github.com/skatefast29/ValAgentBridge).
 
+## Best with ValPerfMonitor
+
+ValAgentBridge pairs well with [ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor), which measures what
+each installed mod and each part of Valheim costs: CPU time, memory allocations, load times and network. With both in
+the same profile, the monitor adds its own `perf/*` tools to the bridge, so an agent can run a whole performance
+measurement without anyone at the keyboard: get into the world, run the monitor's test suite or a live A/B test of a
+change, and read the results. Optional: the bridge works on its own.
+
 ## Features
 
 - **Game:** enter a world in one call, create characters and worlds, load, save, log out
@@ -44,6 +52,3 @@ Started without GABS, ValAgentBridge does nothing: no patches, no listener, no p
    tool and its arguments itself.
 
 The full tool list is also in `TOOLS.md` in this package.
-
-Works well with [ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor) (optional), which adds performance
-measurements the agent can run through ValAgentBridge.
