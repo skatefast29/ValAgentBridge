@@ -16,6 +16,7 @@ Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at
 - `world/enter` and `input/press_key` answer with an error instead of failing the call when the game is busy.
 - `player/place_piece` and `player/repair_item` are marked (cheat) and logged; placed pieces count as cheated for
   the build-height stat; the place-piece description no longer claims a crafting station is needed.
+- One release zip, `ValAgentBridge-<ver>.zip`, in the Thunderstore layout, for every site.
 
 ## 1.5.1
 - `player/teleport` without a height lands on the ground (or the water surface at sea). It used to keep the player's

@@ -50,9 +50,10 @@ per-frame work.
 
 ## Install from a release
 
-Download `ValAgentBridge-<version>.zip` from the [releases page](https://github.com/skatefast29/ValAgentBridge/releases) and
-copy its `BepInEx\plugins\ValAgentBridge` folder into a profile's `BepInEx\plugins` folder. The profile also needs
-ValheimModding-JsonDotNET. Then set up GABS as described under [Using it](#using-it).
+Install it from Thunderstore with a mod manager (Gale, r2modman), or import `ValAgentBridge-<version>.zip` from the
+[releases page](https://github.com/skatefast29/ValAgentBridge/releases) into one. By hand: copy the zip's `plugins`
+folder's DLLs into `<profile>\BepInEx\plugins\ValAgentBridge\`; the profile also needs ValheimModding-JsonDotNET.
+Then set up GABS as described under [Using it](#using-it).
 
 ## Build and install
 
