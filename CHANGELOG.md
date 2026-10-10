@@ -6,7 +6,8 @@ Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at
 - `player/teleport` without a height lands on the ground (or the water surface at sea). It used to keep the player's
   current height, so the game dropped them from high above lower ground or refused ("blocked") on higher ground.
   Far targets wait for the area to load, then land without fall damage.
-- README and Thunderstore page say up front that GABS is required; the Thunderstore package now includes `TOOLS.md`.
+- README and Thunderstore page say up front that the mod is for mod developers and needs GABS; shorter wording
+  elsewhere. The Thunderstore package now includes `TOOLS.md`.
 
 ## 1.5.0
 - Available as a Thunderstore package (`thunderstore\`: manifest, icon, README); `tools\package.ps1` builds the

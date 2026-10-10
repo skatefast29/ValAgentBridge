@@ -4,8 +4,8 @@ ValAgentBridge was made to help with modding Valheim: it lets an AI agent automa
 Instead of launching the game, loading a world and checking things by hand after every change, you ask the agent
 (Claude Code, through the GABS MCP server) and it does it in the running game.
 
-> **Requires [GABS](https://github.com/pardeike/GABS)**, which is not on Thunderstore. ValAgentBridge only works
-> when the game is started through GABS; started normally, it does nothing.
+> **For mod developers.** Needs [GABS](https://github.com/pardeike/GABS) (not on Thunderstore) and an AI agent such
+> as Claude Code. Setup, the full tool list and test scripts: [GitHub](https://github.com/skatefast29/ValAgentBridge).
 
 ## Features
 
@@ -21,17 +21,15 @@ Instead of launching the game, loading a world and checking things by hand after
 - **Stuck detection:** no frames, waiting popups, stalled loads
 - **Other mods:** list mods and settings, use commands they add
 
-Cheat console commands only run when the agent asks for them or devcommands is already on; tell the agent if you
-don't want it to use them.
+Cheat console commands run only with `allowCheats` or when devcommands is already on.
 
 ## What you need
 
 - [Claude Code](https://claude.com/claude-code) (or another MCP client)
 - [GABS](https://github.com/pardeike/GABS) 1.1 or newer (download from its releases page), which starts the game and
   connects the agent to ValAgentBridge
-- Steam running
 
-ValAgentBridge does nothing unless the game is started through GABS: no patches, no listener, no per-frame work.
+Started without GABS, ValAgentBridge does nothing: no patches, no listener, no per-frame work.
 
 ## Setup
 
@@ -42,8 +40,7 @@ ValAgentBridge does nothing unless the game is started through GABS: no patches,
 4. Ask the agent to start Valheim (`games_start valheim`), then `world/enter` to load into a world. It finds every
    tool and its arguments itself.
 
-The full tool list is in `TOOLS.md` in this package. Full setup and test script format:
-[GitHub](https://github.com/skatefast29/ValAgentBridge).
+The full tool list is also in `TOOLS.md` in this package.
 
 Works well with [ValPerfMonitor](https://github.com/skatefast29/ValPerfMonitor) (optional), which adds performance
 measurements the agent can run through ValAgentBridge.
