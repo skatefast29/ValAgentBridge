@@ -19,13 +19,11 @@ change, and read the results. Optional: the bridge works on its own.
 
 ## What the agent can do
 
-
-
 - **Game:** enter a world in one call, create characters and worlds, load, save, log out
 - **Movement:** walk, pathfind, jump, look, teleport
 - **Player actions:** attack, block, interact, pick up, drop, equip, eat, craft, repair, build, press keys, click menus
 - **Console commands:** any game or mod command, with its output
-- **Test setup:** give items, spawn creatures, clear enemies, time, weather, health, god/ghost mode, game speed, mod
+- **Test setup:** give items, spawn creatures, clear enemies (once or for the whole session), time, weather, health, god/ghost mode, game speed, mod
   settings, live values
 - **Lookups:** player state, inventory and backpacks, nearby objects, locations, items and recipes
 - **Monitoring:** screenshots, log, on-screen messages, player events, live code inspection, method watches
@@ -53,7 +51,7 @@ per-frame work.
 
 ## Requirements
 
-- Valheim 1.0 (Unity 6, Mono), BepInEx 5.4.23
+- Valheim 1.0 (Unity 6, Mono; tested on 1.0.17), BepInEx 5.4.23
 - ValheimModding-JsonDotNET (Newtonsoft.Json) in the profile
 - GABS 1.1 or newer, with a game entry that starts Valheim with the profile's BepInEx (see below)
 - To build: .NET SDK (any recent one; the project targets net48) and Valheim installed
@@ -139,12 +137,28 @@ profile):
 | `Src\MainThreadDispatcher.cs` | Runs tool work on Unity's main thread; frame heartbeat for stuck detection |
 | `Src\PlayerLook.cs` | Turning the player and camera |
 | `Src\Inspector.cs` | Reflection helpers for the debug tools |
+| `Src\NavigationManager.cs`, `Src\MovementManager.cs` | Walking with pathfinding, and moving in a direction |
+| `Src\BlockHold.cs` | Keeps `player/block` held until released |
 | `Src\Recorder.cs`, `Src\PlayerEvents.cs` | In-memory log, messages and player events |
-| `Src\BackpackCompat.cs`, `Src\ModCommands.cs` | Backpack mods; commands declared by other mods |
+| `Src\BackpackCompat.cs`, `Src\ModCommands.cs` | Backpack mods; commands declared by other mods (code that needs a mod which isn't installed is skipped) |
 | `lib\` | `Lib.GAB.dll` (built from pardeike/Lib.GAB 1.0.5) and `Gabp.Runtime.dll` (NuGet 1.0.0) |
 | `tests\` | Test scripts for `test/run_file` |
+| `thunderstore\` | Package manifest, icon and the store page README |
+| `tools\package.ps1` | Builds the release zip |
+| `.github\` | Publishing: a GitHub release uploads its zip to Thunderstore and Hexium |
 | `tools\decompile.ps1` | Decompiles the game (and chosen mods) into `reference\decompiled\` for local reading |
 | `reference\` | Local only, gitignored: decompiled game code and upstream sources |
+
+## Releasing
+
+1. Bump the version in `Src\Plugin.cs` (`ModVersion`), `Properties\AssemblyInfo.cs` and `thunderstore\manifest.json`,
+   and add a `CHANGELOG.md` entry.
+2. `dotnet build -c Release`, then `powershell -ExecutionPolicy Bypass -File tools\package.ps1` builds
+   `dist\ValAgentBridge-<version>.zip` (Thunderstore layout).
+3. Publish a GitHub release tagged `v<version>` with that zip. The `Publish to Thunderstore and Hexium` workflow
+   uploads it to both sites (repository secrets `THUNDERSTORE_TOKEN`, `HEXIUM_TOKEN`; a site without its secret is
+   skipped). It checks the zip's version matches the tag; it can also be run by hand from the Actions tab for an
+   existing tag.
 
 ## License
 
