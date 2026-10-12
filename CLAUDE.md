@@ -17,11 +17,13 @@ Machine-specific notes (profiles, other projects, the user's preferences) go in 
 
 ## Build, deploy, test
 - **The game must be closed before deploying** (DLL locked). Check: `Get-Process valheim`.
-- `dotnet build -c Release -p:Deploy=true` builds and copies into the default profile **and every other Gale profile
-  that already has the bridge** (the build lists where it went; a locked DLL means a game is running from one of
-  them). `-p:GaleProfile=<profile dir>` adds a new profile. Compile references come from any profile that has BepInEx.
+- `dotnet build -c Release -p:Deploy=true` builds and copies into **every Gale profile that already has the bridge**
+  (the build lists where it went; a locked DLL means a game is running from one of them). There is no default
+  profile: `-p:GaleProfile=<profile dir>` adds a new one; ask the owner which. Compile references come from any
+  profile that has BepInEx and Json.NET.
 - Bump the plugin's `ModVersion` (`Src\Plugin.cs`) and `Properties\AssemblyInfo.cs` together; add a CHANGELOG entry.
-- Test in game: `games_start valheim` (optionally `profile`). In a heavily modded profile the bridge only comes up
+- Test in game: `games_start valheim` with `profile`. There is no default profile: ask the owner which one (a start
+  without a profile fails on purpose: GABS's stand-in default `ask`). In a heavily modded profile the bridge only comes up
   ~40 s after launch, so `games_start` answers `started_bridge_pending`: then call `games_connect` with `timeout` 120.
   Then at once `world/enter` (GABS `timeout` 300, 700 with `create`; `character`/`world`/`create` for a specific or
   new one): it waits for the menu, loads and returns once in the world. Then `test/run_file` (e.g. `world-controls`,

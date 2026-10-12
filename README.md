@@ -73,16 +73,15 @@ dotnet build -c Release -p:Deploy=true
 
 Builds against the game's real DLLs and copies `ValAgentBridge.dll`, `Lib.GAB.dll` and `Gabp.Runtime.dll` into
 `<profile>\BepInEx\plugins\ValAgentBridge\`, and `tests\*.json` into `<profile>\BepInEx\ValAgentBridge\tests\`. Paths are
-MSBuild properties in `ValAgentBridge.csproj` (`ValheimDir`, `GaleProfile`; default profile: Gale's `Performance Test`).
-The DLLs are also copied into every other Gale profile that already has the bridge installed, so no profile is left
-on an old version. BepInEx, Harmony and Json.NET are referenced from the first Gale profile that has them, so
-building works even if the deploy profile doesn't exist.
+MSBuild properties in `ValAgentBridge.csproj` (`ValheimDir`, `GaleProfile`). There is no default profile: the
+build updates every Gale profile that already has the bridge installed, so no profile is left on an old version.
+BepInEx, Harmony and Json.NET are referenced from any Gale profile that has them.
 
-Another profile, and taking it out again:
+Adding a profile, and taking it out again:
 
 ```
-dotnet build -c Release -p:Deploy=true -p:GaleProfile="%APPDATA%\com.kesomannen.gale\valheim\profiles\Performance Test"
-dotnet build -t:Undeploy -p:GaleProfile="%APPDATA%\com.kesomannen.gale\valheim\profiles\Performance Test"
+dotnet build -c Release -p:Deploy=true -p:GaleProfile="%APPDATA%\com.kesomannen.gale\valheim\profiles\<profile>"
+dotnet build -t:Undeploy -p:GaleProfile="%APPDATA%\com.kesomannen.gale\valheim\profiles\<profile>"
 ```
 
 ## Using it
@@ -92,8 +91,10 @@ dotnet build -t:Undeploy -p:GaleProfile="%APPDATA%\com.kesomannen.gale\valheim\p
    `claude mcp add --scope user gabs -- <path>\gabs.exe server`.
 2. GABS game config, `%USERPROFILE%\.gabs\config.json`: a game `valheim` that starts `valheim.exe` with
    `--doorstop-enabled true`, and one launch profile per mod-manager profile adding
-   `--doorstop-target-assembly <profile>\BepInEx\core\BepInEx.Preloader.dll`.
-3. In an agent session: `games_start valheim` (optionally `profile`). In a heavily modded profile the bridge comes
+   `--doorstop-target-assembly <profile>\BepInEx\core\BepInEx.Preloader.dll`. GABS needs a `defaultProfile`; to make
+   the agent always ask which profile, make it a stand-in profile whose `workingDir` doesn't exist, so a start
+   without a profile fails before anything launches.
+3. In an agent session: `games_start valheim` with `profile`. In a heavily modded profile the bridge comes
    up only after ~40 s, so `games_start` may answer `started_bridge_pending`: then `games_connect` (`timeout` 120).
    Then `world/enter` (GABS `timeout` 300; 700 with `create`), which waits for the main menu, loads the last world
    (or the `character`/`world` given, creating them with `create`) and returns once the player is in it. Then call
