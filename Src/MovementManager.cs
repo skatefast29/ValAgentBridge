@@ -60,6 +60,16 @@ namespace ValAgentBridge
         private void FixedUpdate()
         {
             if (!_isMoving || _tcs == null) return;
+            try { Step(); }
+            catch (Exception ex)
+            {
+                StopMoving();
+                _tcs?.TrySetResult(new { success = false, message = "Moving failed: " + ex.GetBaseException().Message });
+            }
+        }
+
+        private void Step()
+        {
 
             var player = Player.m_localPlayer;
             if (player == null)

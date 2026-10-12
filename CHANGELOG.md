@@ -2,6 +2,18 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.5.4
+- Fixed: the bridge didn't start in a profile where another mod carries optional code for a mod that isn't
+  installed (e.g. ValPerfPatcher's HearthBelow fix without HearthBelow). The scan for other mods' commands skips
+  such code, and the scan, log recording and player events can no longer stop the bridge from starting: a failure
+  is one warning and the bridge runs without that part.
+- Hardened against other mods: a log line that can't be turned into text no longer throws into the mod that logged
+  it; inspecting an object whose code needs a missing mod shows that instead of failing; a walk or move that hits
+  an error ends with an answer instead of repeating the error every physics tick; `world/status` answers even when
+  it can't read the game; session creature clearing doesn't pile up while the game is loading.
+- Build: compile references come from any Gale profile with BepInEx and Json.NET; deploying skips a named profile
+  that no longer exists instead of recreating it as an empty folder.
+
 ## 1.5.3
 - No changes to the mod.
 

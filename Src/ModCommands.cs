@@ -38,6 +38,9 @@ namespace ValAgentBridge
 
             foreach (var (mod, asm) in assemblies)
             {
+                // Mods often carry optional code for other mods (a fix for HearthBelow, say). Reading that code when
+                // the other mod isn't installed throws: such types and methods are skipped, never fatal.
+                int unreadable = 0;
                 Type?[] types;
                 try { types = asm.GetTypes(); }
                 catch (ReflectionTypeLoadException e) { types = e.Types; }
@@ -47,13 +50,22 @@ namespace ValAgentBridge
                 {
                     MethodInfo[] methods;
                     try { methods = type!.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly); }
-                    catch { continue; }
+                    catch { unreadable++; continue; }
                     foreach (var method in methods)
                     {
-                        var attr = method.GetCustomAttributes(false).FirstOrDefault(a => a.GetType().Name == "BridgeToolAttribute");
-                        if (attr != null) Register(registry, mod, method, attr);
+                        try
+                        {
+                            var attr = method.GetCustomAttributes(false).FirstOrDefault(a => a.GetType().Name == "BridgeToolAttribute");
+                            if (attr != null) Register(registry, mod, method, attr);
+                        }
+                        catch (Exception)
+                        {
+                            unreadable++;
+                        }
                     }
                 }
+                if (unreadable > 0)
+                    ValAgentBridgePlugin.ModLogger.LogInfo($"Mod commands: skipped {unreadable} part(s) of {mod} that need a mod which isn't installed.");
             }
             if (All.Count > 0)
                 ValAgentBridgePlugin.ModLogger.LogInfo($"Mod commands: {All.Count(f => f.registered)} registered, {All.Count(f => !f.registered)} skipped");

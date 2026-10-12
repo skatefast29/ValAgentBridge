@@ -30,7 +30,7 @@ namespace ValAgentBridge
     public class ValAgentBridgePlugin : BaseUnityPlugin
     {
         private const string ModName = "ValAgentBridge";
-        private const string ModVersion = "1.5.3";
+        private const string ModVersion = "1.5.4";
         private const string Author = "BarryWhite";
         private const string ModGUID = Author + "." + ModName;
 
@@ -60,7 +60,8 @@ namespace ValAgentBridge
             {
                 // Log lines and on-screen messages are kept in memory for logs/read, ui/messages and test reports.
                 _harmony = new Harmony(ModGUID);
-                Recorder.Install(_harmony);
+                var recorderHarmony = _harmony;
+                Optional("Log and message recording", () => Recorder.Install(recorderHarmony));
 
                 // Read the bridge config (following GABP docs pattern)
                 var config = ReadBridgeConfig();
@@ -92,13 +93,16 @@ namespace ValAgentBridge
                 ToolGuard.RegisterChecked(_server.Tools, new ControlTools());
                 ToolGuard.RegisterChecked(_server.Tools, new InputTools());
                 // Commands other mods declare with their own [BridgeTool] attribute (after ours, so names can't clash).
-                ModCommands.RegisterAll(_server.Tools);
+                // Optional, like the extras below: a failure is logged and the bridge starts without it.
+                Optional("Commands from other mods", () => ModCommands.RegisterAll(_server.Tools));
                 Tools = _server.Tools;
 
                 // Register event channels
                 _server.Events.RegisterChannel("player/death", "Player death events");
                 _server.Events.RegisterChannel("player/health_changed", "Player health change events");
-                PlayerEvents.Install(_harmony, _server.Events);
+                var harmony = _harmony;
+                var events = _server.Events;
+                Optional("Player events", () => PlayerEvents.Install(harmony, events));
                 _bridgeUp = true;
 
                 // Ensure manager singletons are created on the main thread
@@ -124,6 +128,17 @@ namespace ValAgentBridge
             {
                 ModLogger.LogError($"Failed to initialize GABP server: {ex.Message}");
                 ModLogger.LogError($"Stack trace: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>Runs a startup step the bridge can do without; a failure is one log line, never the whole bridge.</summary>
+        private static void Optional(string what, Action step)
+        {
+            try { step(); }
+            catch (Exception ex)
+            {
+                var e = ex.GetBaseException();
+                ModLogger.LogWarning($"{what} unavailable ({e.GetType().Name}: {e.Message}); the bridge runs without it.");
             }
         }
 

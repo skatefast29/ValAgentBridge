@@ -116,6 +116,12 @@ namespace ValAgentBridge.Tools
             {
                 return new Snapshot();
             }
+            catch (Exception ex)
+            {
+                var e = ex.GetBaseException();
+                ValAgentBridgePlugin.ModLogger.LogWarning($"world/status: could not read the game ({e.GetType().Name}: {e.Message})");
+                return new Snapshot { phase = "unknown", popup = null, scene = null };
+            }
         }
 
         private static string? OpenPopup()

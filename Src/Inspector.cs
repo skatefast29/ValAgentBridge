@@ -66,7 +66,15 @@ namespace ValAgentBridge
 
             var obj = new Dictionary<string, object?> { ["$type"] = TypeName(type) };
             if (value is UnityEngine.Object named) obj["$name"] = named.name;
-            foreach (var f in InstanceFields(type))
+            List<FieldInfo> fields;
+            try { fields = InstanceFields(type).ToList(); }
+            catch (Exception ex)
+            {
+                // Usually a mod type whose fields need another mod that isn't installed.
+                obj["$fields"] = $"(unreadable: {ex.GetBaseException().GetType().Name}: {ex.GetBaseException().Message})";
+                return obj;
+            }
+            foreach (var f in fields)
             {
                 object? v;
                 try { v = f.GetValue(value); }

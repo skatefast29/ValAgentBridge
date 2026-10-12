@@ -77,6 +77,13 @@ namespace ValAgentBridge
         private void FixedUpdate()
         {
             if (!_isNavigating || _tcs == null) return;
+            // An error (pathfinding, another mod's patch) ends the walk with an answer instead of repeating every tick.
+            try { Step(); }
+            catch (Exception ex) { Finish(false, "Navigation failed: " + ex.GetBaseException().Message); }
+        }
+
+        private void Step()
+        {
 
             var player = Player.m_localPlayer;
             if (player == null)

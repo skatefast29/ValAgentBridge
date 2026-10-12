@@ -149,18 +149,30 @@ namespace ValAgentBridge
         {
             public void LogEvent(object sender, LogEventArgs e)
             {
-                var level = e.Level.ToString();
-                lock (Gate)
+                // Runs inside every mod's logging call: it must never throw into that mod.
+                try
                 {
-                    Log.AddLast(new LogEntry
+                    var level = e.Level.ToString();
+                    string text;
+                    try { text = e.Data?.ToString() ?? ""; }
+                    catch (Exception ex) { text = $"(log line could not be read: {ex.GetType().Name})"; }
+                    var entry = new LogEntry
                     {
-                        seq = ++_logSeq,
                         time = DateTime.Now.ToString("HH:mm:ss.fff"),
                         level = level.Contains(",") ? level.Split(',')[0].Trim() : level,
                         source = e.Source?.SourceName ?? "",
-                        text = e.Data?.ToString() ?? ""
-                    });
-                    while (Log.Count > MaxLog) Log.RemoveFirst();
+                        text = text
+                    };
+                    lock (Gate)
+                    {
+                        entry.seq = ++_logSeq;
+                        Log.AddLast(entry);
+                        while (Log.Count > MaxLog) Log.RemoveFirst();
+                    }
+                }
+                catch
+                {
+                    // Recording is best effort.
                 }
             }
 

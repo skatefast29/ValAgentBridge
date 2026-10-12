@@ -189,7 +189,17 @@ namespace ValAgentBridge.Tools
             }
         }
 
+        private static int _keepClearBusy;
+
         private static void KeepClearTick()
+        {
+            // While the game is busy (loading) a tick can wait up to 5 s; the next one is skipped, not stacked.
+            if (Interlocked.Exchange(ref _keepClearBusy, 1) == 1) return;
+            try { KeepClearOnce(); }
+            finally { Interlocked.Exchange(ref _keepClearBusy, 0); }
+        }
+
+        private static void KeepClearOnce()
         {
             float radius;
             bool bosses;
