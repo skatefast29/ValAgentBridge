@@ -109,8 +109,9 @@ that profile through GABS, and drive the game with the tools here. A mod can als
 
 ### With ValPerfMonitor
 
-Its tools include `perf/start_suite`, `perf/results`, `perf/ab_test`, `perf/load_times` and `perf/objects`;
-`mods/list_commands` shows them all once both mods are in the profile.
+Its tools include `perf/start_suite`, `perf/results`, `perf/ab_test`, `perf/load_times`, `perf/objects` and
+`perf/split_startup` (splits chosen mods' startup into their own methods on the next launch; results in
+`perf/load_times`); `mods/list_commands` shows them all once both mods are in the profile.
 
 All tools: [TOOLS.md](TOOLS.md).
 
