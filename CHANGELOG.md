@@ -2,6 +2,9 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.5.5
+- Minor README fixes.
+
 ## 1.5.4
 - Fixed: the bridge didn't start in a profile where another mod carries optional code for a mod that isn't
   installed (e.g. ValPerfPatcher's HearthBelow fix without HearthBelow). The scan for other mods' commands skips
