@@ -30,7 +30,7 @@ namespace ValAgentBridge
     public class ValAgentBridgePlugin : BaseUnityPlugin
     {
         private const string ModName = "ValAgentBridge";
-        private const string ModVersion = "1.6.0";
+        private const string ModVersion = "1.7.0";
         private const string Author = "BarryWhite";
         private const string ModGUID = Author + "." + ModName;
 

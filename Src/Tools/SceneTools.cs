@@ -41,10 +41,10 @@ namespace ValAgentBridge.Tools
                     return new { success = true, scenes, truncated = budget < 0 };
                 }
 
-                var start = FindStart(path, instanceId, out var error);
+                var start = FindStart(path, instanceId, out var error, out var warning);
                 if (start == null) return new { success = false, error };
                 var node = Node(start, depth, maxChildren, includeInactive, ref budget);
-                return new { success = true, path = PathOf(start), scene = start.gameObject.scene.name, node, truncated = budget < 0 };
+                return new { success = true, path = PathOf(start), scene = start.gameObject.scene.name, warning, node, truncated = budget < 0 };
             });
         }
 
@@ -63,9 +63,10 @@ namespace ValAgentBridge.Tools
             return MainThreadDispatcher.RunTool(() =>
             {
                 List<Transform> starts;
+                string? warning = null;
                 if (under.Length > 0 || underId != 0)
                 {
-                    var start = FindStart(under, underId, out var error);
+                    var start = FindStart(under, underId, out var error, out warning);
                     if (start == null) return new { success = false, error };
                     starts = new List<Transform> { start };
                 }
@@ -106,11 +107,49 @@ namespace ValAgentBridge.Tools
                 return new
                 {
                     success = true,
+                    warning,
                     matched,
                     shown = hits.Count,
                     visited,
                     stoppedEarly = visited >= MaxVisited,
                     objects = hits
+                };
+            });
+        }
+
+        [Tool("debug/set_active", Description = "(cheat) Switch a Unity object on or off, like hiding it, e.g. a mod's object, a menu part or an effect, to see whether a problem or a frame-time cost goes with it. Its children go with it. Not saved: a world object switched off comes back when it is reloaded. Switch it back afterwards (the answer gives before). Logged.")]
+        public object SetActive(
+            [ToolParameter(Description = "true = on, false = off")] bool active,
+            [ToolParameter(Description = "The object's instanceId (from debug/scene_tree or debug/find_objects)")] int instanceId = 0,
+            [ToolParameter(Description = "Or its path of names from a root, e.g. '_GameMain/LoadingGUI'")] string path = "")
+        {
+            if (instanceId == 0 && path.Length == 0) return new { success = false, error = "Give instanceId or path." };
+            return MainThreadDispatcher.RunTool(() =>
+            {
+                var t = FindStart(path, instanceId, out var error, out var warning);
+                if (t == null) return new { success = false, error };
+                // A path that matches several objects could switch the wrong one: only an instanceId may then.
+                if (warning != null) return new { success = false, error = warning };
+                var go = t.gameObject;
+                if (Player.m_localPlayer != null && go == Player.m_localPlayer.gameObject)
+                    return new { success = false, error = "That is the player character; switching it off breaks the game." };
+                // Switching off the bridge's own objects (or BepInEx_Manager, which holds every mod) would stop the
+                // bridge, and nothing could switch them back on.
+                var ours = typeof(SceneTools).Assembly;
+                if (!active && go.GetComponentsInChildren<Component>(true).Any(c => c != null && c.GetType().Assembly == ours))
+                    return new { success = false, error = "That object holds part of ValAgentBridge; switching it off would cut the connection." };
+                bool before = go.activeSelf;
+                go.SetActive(active);
+                ValAgentBridgePlugin.ModLogger.LogInfo($"debug/set_active: {PathOf(t)} (instanceId {go.GetInstanceID()}): {before} -> {go.activeSelf}");
+                return new
+                {
+                    success = true,
+                    path = PathOf(t),
+                    instanceId = go.GetInstanceID(),
+                    before,
+                    after = go.activeSelf,
+                    activeInHierarchy = go.activeInHierarchy,
+                    note = go.activeSelf && !go.activeInHierarchy ? "On, but a parent is off, so it still doesn't show." : null
                 };
             });
         }
@@ -144,7 +183,8 @@ namespace ValAgentBridge.Tools
         // A list of objects, or (when there are too many, or the output budget is used up) a count per name.
         private static object Children(List<Transform> kids, int depth, int maxChildren, bool includeInactive, ref int budget)
         {
-            if (kids.Count <= maxChildren && budget > kids.Count)
+            bool tooMany = kids.Count > maxChildren;
+            if (!tooMany && budget > kids.Count)
             {
                 var list = new List<object>(kids.Count);
                 foreach (var k in kids) list.Add(Node(k, depth, maxChildren, includeInactive, ref budget));
@@ -163,7 +203,8 @@ namespace ValAgentBridge.Tools
                 .ToList();
             return new
             {
-                note = $"{kids.Count} objects; names that occur once are listed, the rest counted by name. Use debug/find_objects or a firstInstanceId to look at one",
+                note = (tooMany ? $"{kids.Count} objects" : $"{kids.Count} objects, shown in short because the answer reached its size limit (ask for less depth or start lower down)")
+                       + "; names that occur once are listed, the rest counted by name. Use debug/find_objects or a firstInstanceId to look at one",
                 single = single.Select(k => new
                 {
                     name = k.name,
@@ -193,9 +234,10 @@ namespace ValAgentBridge.Tools
                 .Select(c => c.GetType().Name)
                 .ToList();
 
-        private static Transform? FindStart(string path, int instanceId, out string? error)
+        private static Transform? FindStart(string path, int instanceId, out string? error, out string? warning)
         {
             error = null;
+            warning = null;
             if (instanceId != 0)
             {
                 var found = Resources.InstanceIDToObject(instanceId);
@@ -206,17 +248,28 @@ namespace ValAgentBridge.Tools
             }
 
             var parts = path.Trim('/').Split('/');
-            var root = LoadedScenes().SelectMany(s => s.GetRootGameObjects()).FirstOrDefault(g => g.name == parts[0]);
-            if (root == null) { error = $"No root object named '{parts[0]}'. Call debug/scene_tree without a start to see the roots."; return null; }
-            var t = root.transform;
+            var roots = LoadedScenes().SelectMany(s => s.GetRootGameObjects()).Where(g => g.name == parts[0]).ToList();
+            if (roots.Count == 0) { error = $"No root object named '{parts[0]}'. Call debug/scene_tree without a start to see the roots."; return null; }
+            var t = roots[0].transform;
+            var shared = new List<string>();
+            if (roots.Count > 1) shared.Add($"{parts[0]} ({roots.Count})");
             for (int i = 1; i < parts.Length; i++)
             {
                 Transform? next = null;
-                for (int k = 0; k < t.childCount && next == null; k++)
-                    if (t.GetChild(k).name == parts[i]) next = t.GetChild(k);
+                int same = 0;
+                for (int k = 0; k < t.childCount; k++)
+                {
+                    if (t.GetChild(k).name != parts[i]) continue;
+                    if (next == null) next = t.GetChild(k);
+                    same++;
+                }
                 if (next == null) { error = $"'{string.Join("/", parts.Take(i))}' has no child named '{parts[i]}'"; return null; }
+                if (same > 1) shared.Add($"{parts[i]} ({same})");
                 t = next;
             }
+            // A path of names can't tell same-named objects apart: say so, the instanceId can.
+            if (shared.Count > 0)
+                warning = $"Several objects share these names, the first was taken: {string.Join(", ", shared)}. Use the instanceId to pick another.";
             return t;
         }
 
