@@ -21,10 +21,12 @@ change, and read the results. Optional: the bridge works on its own.
 - **Movement:** walk, pathfind, jump, look, teleport
 - **Player actions:** attack, block, interact, pick up, drop, equip, eat, craft, repair, build, press keys, click menus
 - **Console commands:** any game or mod command, with its output
-- **Test setup:** give items, spawn creatures, clear enemies, time, weather, health, god/ghost mode, game speed, mod
+- **Test setup:** give items, spawn creatures, clear enemies (once or for the whole session), time, weather, health, god/ghost mode, game speed, mod
   settings, live values
 - **Lookups:** player state, inventory and backpacks, nearby objects, locations, items and recipes
-- **Monitoring:** screenshots, log, on-screen messages, player events, live code inspection, method watches
+- **Monitoring:** screenshots, log, on-screen messages, player events
+- **Live inspection:** browse and search every object in the game (world, menus, HUD, mod objects), read and
+  change live values, switch objects on or off, watch method calls
 - **Test scripts:** JSON steps and checks with pass/fail reports
 - **Stuck detection:** no frames, waiting popups, stalled loads
 - **Other mods:** list mods and settings, use commands they add

@@ -3,17 +3,16 @@
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
 ## 1.7.0
+- New `debug/scene_tree`: browse every Unity object in the loaded scenes (world objects, menus, HUD, and the
+  objects the game and mods keep across scenes) as a tree with names, instanceIds, active state and components.
+  Large groups of same-named objects (thousands of trees) are counted by name, with the one-off objects listed
+  first.
+- New `debug/find_objects`: search that tree by object name and/or component type, everywhere or below one object.
 - New `debug/set_active` (cheat): switch a Unity object on or off, e.g. to see whether a problem or a frame-time
-  cost goes with it. Refuses the player character and the bridge's own objects; logged.
-- `debug/scene_tree` and `debug/find_objects` warn when a path of names matches several same-named objects (the
-  first is taken; the instanceId picks the right one), and say when a list is shortened because the answer reached
-  its size limit rather than calling it too many objects.
-
-## 1.6.0
-- New `debug/scene_tree`: browse every Unity object in the loaded scenes (menus, HUD, mod managers, world
-  objects) as a tree with names, instanceIds, active state and components; large groups of same-named objects are
-  counted by name instead of listed.
-- New `debug/find_objects`: search that tree by object name and/or component type.
+  cost goes with it. Refuses the player character, the bridge's own objects and a path that matches several
+  same-named objects; logged.
+- A path of names that matches several same-named objects gives a warning (the first is taken; the instanceId
+  picks the right one).
 
 ## 1.5.5
 - Minor README fixes.

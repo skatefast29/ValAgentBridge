@@ -26,7 +26,9 @@ change, and read the results. Optional: the bridge works on its own.
 - **Test setup:** give items, spawn creatures, clear enemies (once or for the whole session), time, weather, health, god/ghost mode, game speed, mod
   settings, live values
 - **Lookups:** player state, inventory and backpacks, nearby objects, locations, items and recipes
-- **Monitoring:** screenshots, log, on-screen messages, player events, live code inspection, method watches
+- **Monitoring:** screenshots, log, on-screen messages, player events
+- **Live inspection:** browse and search every object in the game (world, menus, HUD, mod objects), read and
+  change live values, switch objects on or off, watch method calls
 - **Test scripts:** JSON steps and checks with pass/fail reports
 - **Stuck detection:** no frames, waiting popups, stalled loads
 - **Other mods:** list mods and settings, use commands they add
@@ -132,7 +134,7 @@ profile):
 | Path | What |
 |---|---|
 | `Src\Plugin.cs` | BepInEx entry point: config, GABP server, tool registration |
-| `Src\Tools\` | One class per tool area: player, world (incl. `world/enter`), control (teleport, creatures, time, weather), input, mods, debug, watch, ui, logs, time, items, test, screen, console, znetscene |
+| `Src\Tools\` | One class per tool area: player, world (incl. `world/enter`), control (teleport, creatures, time, weather), input, mods, debug, scene (object tree), watch, ui, logs, time, items, test, screen, console, znetscene |
 | `Src\ToolGuard.cs` | Registers tools with argument-name checks; closest-name suggestions |
 | `Src\MainThreadDispatcher.cs` | Runs tool work on Unity's main thread; frame heartbeat for stuck detection |
 | `Src\PlayerLook.cs` | Turning the player and camera |
