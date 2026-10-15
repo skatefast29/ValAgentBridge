@@ -2,6 +2,12 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.6.0
+- New `debug/scene_tree`: browse every Unity object in the loaded scenes (menus, HUD, mod managers, world
+  objects) as a tree with names, instanceIds, active state and components; large groups of same-named objects are
+  counted by name instead of listed.
+- New `debug/find_objects`: search that tree by object name and/or component type.
+
 ## 1.5.5
 - Minor README fixes.
 

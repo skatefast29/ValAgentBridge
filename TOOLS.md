@@ -100,6 +100,8 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 | `debug/find_types` | Loaded types whose name contains a text |
 | `debug/inspect` | Read live values by path, e.g. `ZoneSystem.instance.m_globalKeys` or `Player.m_localPlayer.m_inventory.m_inventory.0` (a number indexes a list). Below the path only fields are read, never property getters |
 | `debug/inspect_object` | Components on a world object (instanceId) and the fields of the game/mod ones |
+| `debug/scene_tree` | Browse Unity's object tree: without a start, the roots of every loaded scene (plus the objects kept across scenes, where the game and mods keep managers); or from a `path` of names (`_GameMain/GUI`) or `instanceId`, `depth` levels down. Each object: name, instanceId, active, components, children. Many same-named children (thousands of trees) are counted by name instead of listed (`maxChildren`, default 40). Covers menus, HUD and mod objects the world tools don't see |
+| `debug/find_objects` | Search that tree by `name` and/or `component` type (e.g. `Canvas`, `Light`), everywhere or `under` one object; returns path, instanceId, position and components. Use the instanceId with `debug/inspect_object` |
 | `debug/set_value` | **(cheat)** Change a live field or property by path |
 | `debug/call_method` | **(cheat)** Run a method on a type or on the object at a path, args as a JSON array (a Vector3 as `[x, y, z]` or `"x,y,z"`) |
 | `debug/watch_start`, `debug/watch_list`, `debug/watch_read`, `debug/watch_stop` | Patch a method at runtime: count every call and record the arguments, result and exceptions of the first N. Mono inlines tiny methods (under ~20 bytes of IL); a watch on one may not see every call, and the start answer warns about it |
