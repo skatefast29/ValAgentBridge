@@ -109,9 +109,13 @@ that profile through GABS, and drive the game with the tools here. A mod can als
 
 ### With ValPerfMonitor
 
-Its tools include `perf/start_suite`, `perf/results`, `perf/ab_test`, `perf/load_times`, `perf/objects` and
+Its tools include `perf/start_suite`, `perf/results`, `perf/ab_test`, `perf/load_times`, `perf/objects`,
 `perf/split_startup` (splits chosen mods' startup into their own methods on the next launch; results in
-`perf/load_times`); `mods/list_commands` shows them all once both mods are in the profile.
+`perf/load_times`), `perf/object_costs` (the most expensive objects and prefabs), `perf/memory_census` (what keeps
+memory full, per mod, and what grew since the last census), `perf/log_errors` (errors per mod) and
+`perf/session_logs` (how past sessions ended). The longer ones run in the background and are read with a matching
+result tool (`perf/object_costs_result`, `perf/memory_census_result`, `perf/ab_result`). Object instanceIds in
+their results work with `debug/inspect_object`, `debug/find_objects` and `debug/set_active`. `mods/list_commands` shows them all once both mods are in the profile.
 
 All tools: [TOOLS.md](TOOLS.md).
 
