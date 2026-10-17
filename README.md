@@ -21,19 +21,23 @@ change, and read the results. Optional: the bridge works on its own.
 
 - **Game:** enter a world in one call, create characters and worlds, load, save, log out
 - **Movement:** walk, pathfind, jump, look, teleport
-- **Player actions:** attack, block, interact, pick up, drop, equip, eat, craft, repair, build, press keys, click menus
+- **Player actions:** attack, block, interact, open a station, chest, portal or door by its ID without aiming, pick up, drop, equip, eat,
+  craft, repair, build, press keys, mouse wheel and drag (map zoom and pan), click menus
 - **Console commands:** any game or mod command, with its output
-- **Test setup:** give items, spawn creatures, clear enemies (once or for the whole session), time, weather, health, god/ghost mode, game speed, mod
+- **Test setup:** give items, spawn creatures, spawn any object (boats on the water, never on top of another ship), clear enemies (once or for the whole session), time, weather, health, god/ghost mode, game speed, mod
   settings, live values
 - **Lookups:** player state, inventory and backpacks, nearby objects, locations, items and recipes
 - **Monitoring:** screenshots, log, on-screen messages, player events
 - **Live inspection:** browse and search every object in the game (world, menus, HUD, mod objects), read and
   change live values, switch objects on or off, watch method calls
-- **Test scripts:** JSON steps and checks with pass/fail reports
+- **Test scripts:** JSON steps and checks with pass/fail reports; optional steps, repeats, short summaries
 - **Stuck detection:** no frames, waiting popups, stalled loads
 - **Other mods:** list mods and settings, use commands they add
 
 Cheat console commands run only with `allowCheats` or when devcommands is already on.
+
+The agent doesn't take the character away from you: moving, turning and teleporting are refused while you steer a
+ship, sit, have a menu open or used keyboard or mouse in the last few seconds, unless the agent asks and forces it.
 
 Clearing hostile creatures is off by default. When testing starts the agent offers to turn it on, so a creature
 can't kill the character mid-test; say no if you are testing creatures.
