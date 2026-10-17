@@ -30,7 +30,7 @@ namespace ValAgentBridge
     public class ValAgentBridgePlugin : BaseUnityPlugin
     {
         private const string ModName = "ValAgentBridge";
-        private const string ModVersion = "1.7.0";
+        private const string ModVersion = "1.8.0";
         private const string Author = "BarryWhite";
         private const string ModGUID = Author + "." + ModName;
 
@@ -93,6 +93,7 @@ namespace ValAgentBridge
                 ToolGuard.RegisterChecked(_server.Tools, new ItemTools());
                 ToolGuard.RegisterChecked(_server.Tools, new ControlTools());
                 ToolGuard.RegisterChecked(_server.Tools, new InputTools());
+                ToolGuard.RegisterChecked(_server.Tools, new ObjectTools());
                 // Commands other mods declare with their own [BridgeTool] attribute (after ours, so names can't clash).
                 // Optional, like the extras below: a failure is logged and the bridge starts without it.
                 Optional("Commands from other mods", () => ModCommands.RegisterAll(_server.Tools));

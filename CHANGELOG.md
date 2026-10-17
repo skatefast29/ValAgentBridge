@@ -2,6 +2,24 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.8.0
+- New `player/interact_object`: use a crafting station, chest, portal, door, bed or ship's controls by instanceId,
+  without aiming at it, and get back what opened (or the distance when too far, or what the game said).
+  Portals: `travel: true` goes through.
+- New `input/scroll` and `input/drag`: mouse wheel and drag as if by hand (map zoom and pan, build-menu tabs).
+- New `world/spawn_object` (cheat): spawn any prefab like the game's spawn command, at a position or an offset from
+  the player. Boats sit on the water facing the player's way; a spot overlapping a ship, or a boat on top of a
+  player, is refused unless forced.
+- Owner in control: teleport, look, walk, jump, dodge and interact refuse while the owner is steering or on a
+  moving ship, sitting, in a menu or just used keyboard/mouse/gamepad; `force: true` overrides.
+- Test scripts: `"optional": true` steps (a failure is listed but the run goes on), `repeat` blocks with a round
+  counter, and a short summary answer by default (`detail: "full"` for every step; the saved report has all).
+- `world/remove_objects` takes `ids` as a real array (a JSON string still works); any list argument does.
+- New `console/set_devcommands`: switch devcommands on or off without flipping it by accident;
+  `console/run_command` refuses the bare `devcommands` toggle.
+- Frames in which the bridge ran tool work are recorded (`MainThreadDispatcher.WorkedInFrame`), so ValPerfMonitor
+  can leave them out of measurements.
+
 ## 1.7.0
 - New `debug/scene_tree`: browse every Unity object in the loaded scenes (world objects, menus, HUD, and the
   objects the game and mods keep across scenes) as a tree with names, instanceIds, active state and components.

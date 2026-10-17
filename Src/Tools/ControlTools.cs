@@ -44,11 +44,12 @@ namespace ValAgentBridge.Tools
             return false;
         }
 
-        [Tool("player/teleport", Description = "(cheat) Teleport the player to a world position. Without a height the player lands on the highest surface there: ground, a rock, a roof (not tree tops), or the water surface; give the height to land inside a building. Waits until the teleport has finished (far ones load the area first) and returns where the player ended up.")]
+        [Tool("player/teleport", Description = "(cheat) Teleport the player to a world position. Without a height the player lands on the highest surface there: ground, a rock, a roof (not tree tops), or the water surface; give the height to land inside a building. Waits until the teleport has finished (far ones load the area first) and returns where the player ended up. Refuses while the owner is steering or on a moving ship, in a menu or just used keyboard/mouse, unless force=true.")]
         public object Teleport(
             [ToolParameter(Description = "X coordinate")] float x,
             [ToolParameter(Description = "Z coordinate")] float z,
-            [ToolParameter(Description = "Height; leave out to land on top of whatever is there")] float y = float.NaN)
+            [ToolParameter(Description = "Height; leave out to land on top of whatever is there")] float y = float.NaN,
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false)
         {
             string? problem;
             bool landLater = false;
@@ -60,6 +61,8 @@ namespace ValAgentBridge.Tools
                     if (Interlocked.CompareExchange(ref abandoned, 0, 0) != 0) return "abandoned";
                     var player = Player.m_localPlayer;
                     if (player == null) return "No local player (not in a world).";
+                    if (OwnerControl.Busy(player, force) is string busy)
+                        return $"Not done: the owner is {busy}. Teleporting would take the character away from them. Ask the owner, then pass force=true to do it anyway.";
                     var from = player.transform.position;
                     float targetY = y;
                     if (float.IsNaN(y) && !TryLandingHeight(x, z, out targetY))
@@ -352,13 +355,11 @@ namespace ValAgentBridge.Tools
 
         [Tool("world/remove_objects", Description = "(cheat) Remove objects from the world by instanceId (creatures spawned for a test, dropped items, ...). Never removes the player.")]
         public object RemoveObjects(
-            [ToolParameter(Description = "instanceIds as a JSON array, e.g. [123, 456]")] string ids)
+            [ToolParameter(Description = "instanceIds, e.g. [123, 456] (the same as a JSON string also works)")] int[] ids)
         {
             return MainThreadDispatcher.RunTool(() =>
             {
-                List<int> list;
-                try { list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(ids) ?? new List<int>(); }
-                catch (Exception ex) { return new { success = false, error = "ids is not a JSON array of numbers: " + ex.Message }; }
+                var list = (ids ?? new int[0]).ToList();
                 var wanted = new HashSet<int>(list);
                 int removed = 0;
                 foreach (var view in UnityEngine.Object.FindObjectsByType<ZNetView>(FindObjectsSortMode.None))
@@ -471,15 +472,17 @@ namespace ValAgentBridge.Tools
             });
         }
 
-        [Tool("player/look_direction", Description = "Turn the player and camera to a compass heading and tilt, e.g. to aim a screenshot. Heading: 0 = north (+Z), 90 = east (+X). Tilt: 0 = level, positive = up, negative = down.")]
+        [Tool("player/look_direction", Description = "Turn the player and camera to a compass heading and tilt, e.g. to aim a screenshot. Heading: 0 = north (+Z), 90 = east (+X). Tilt: 0 = level, positive = up, negative = down. Refuses while the owner is in control unless force=true.")]
         public object LookDirection(
             [ToolParameter(Description = "Heading in degrees (0 = north, 90 = east)")] float heading,
-            [ToolParameter(Description = "Tilt in degrees (-80 to 80, default 0)")] float tilt = 0f)
+            [ToolParameter(Description = "Tilt in degrees (-80 to 80, default 0)")] float tilt = 0f,
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false)
         {
             return MainThreadDispatcher.RunTool(() =>
             {
                 var player = Player.m_localPlayer;
                 if (player == null) return new { success = false, error = "Not in a world." };
+                if (OwnerControl.Refusal(player, force, "Turning") is object refused) return refused;
                 PlayerLook.Set(player, heading, tilt);
                 return new { success = true, heading, tilt = Mathf.Clamp(tilt, -80f, 80f) };
             });

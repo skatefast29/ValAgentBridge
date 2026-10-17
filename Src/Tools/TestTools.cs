@@ -24,19 +24,21 @@ namespace ValAgentBridge.Tools
         private static string ResultsFolder => Path.Combine(Paths.BepInExRootPath, "ValAgentBridge", "test-results");
         private static readonly Regex VarPattern = new Regex(@"\$\{([A-Za-z_][A-Za-z0-9_]*)((?:\.[^}]+)?)\}");
 
-        [Tool("test/run", Description = "Run a test script given as JSON: {\"name\":..., \"steps\":[...]}. Steps: {\"call\":\"tool/name\",\"args\":{}}, {\"wait\":seconds}, {\"waitUntil\":{\"call\":...,\"args\":{}},\"until\":[checks],\"timeout\":60} (or {\"waitUntil\":\"in_world\"} / \"main_menu\"), {\"screenshot\":true}, {\"note\":\"text\"}; any step may add \"expect\":[{\"path\":\"health\",\"greaterThan\":10}] and \"saveAs\":\"name\" (use ${name.path} in later args). Returns pass/fail per step plus a summary of warnings, errors, on-screen messages and events from the run (repeats counted, full detail in reportFile); a failing step gets a screenshot (top-level \"screenshotOnFail\": false turns that off). Top-level \"clearHostiles\": 50 removes hostile creatures within 50 m first and \"keepClear\": 50 keeps doing so every 10 s; \"protect\": true keeps the player from taking damage or being noticed by creatures during the run, then restores.")]
+        [Tool("test/run", Description = "Run a test script given as JSON: {\"name\":..., \"steps\":[...]}. Steps: {\"call\":\"tool/name\",\"args\":{}}, {\"wait\":seconds}, {\"waitUntil\":{\"call\":...,\"args\":{}},\"until\":[checks],\"timeout\":60} (or {\"waitUntil\":\"in_world\"} / \"main_menu\"), {\"screenshot\":true}, {\"note\":\"text\"}, {\"repeat\":N,\"steps\":[...],\"as\":\"round\"}; any step may add \"optional\": true (a failure is reported but the run goes on and still passes), \"report\": true (shown in the summary), and \"expect\":[{\"path\":\"health\",\"greaterThan\":10}] and \"saveAs\":\"name\" (use ${name.path} in later args). Returns pass/fail with the failed steps (detail \"full\": every step) plus a summary of warnings, errors, on-screen messages and events from the run (repeats counted, full detail in reportFile); a failing step gets a screenshot (top-level \"screenshotOnFail\": false turns that off). Top-level \"clearHostiles\": 50 removes hostile creatures within 50 m first and \"keepClear\": 50 keeps doing so every 10 s; \"protect\": true keeps the player from taking damage or being noticed by creatures during the run, then restores.")]
         public object Run(
-            [ToolParameter(Description = "The script: a JSON object, or the same as a JSON string")] object script)
+            [ToolParameter(Description = "The script: a JSON object, or the same as a JSON string")] object script,
+            [ToolParameter(Description = "summary (default: failed steps, messages, events) or full (every step); the saved report always has everything")] string detail = "")
         {
             JObject parsed;
             try { parsed = script as JObject ?? JObject.Parse(script as string ?? JToken.FromObject(script).ToString()); }
             catch (Exception ex) { return new { success = false, error = "Script is not valid JSON: " + ex.Message }; }
-            return Execute(parsed, "inline");
+            return Execute(parsed, "inline", detail);
         }
 
         [Tool("test/run_file", Description = "Run a saved test script from BepInEx\\ValAgentBridge\\tests (name with or without .json), or from a full path. The scripts that come with the bridge (enter-world, quick-check, inventory-items-console, world-controls) work in any profile.")]
         public object RunFile(
-            [ToolParameter(Description = "File name in the tests folder, or a full path")] string name)
+            [ToolParameter(Description = "File name in the tests folder, or a full path")] string name,
+            [ToolParameter(Description = "summary (default: failed steps, messages, events) or full (every step); the saved report always has everything")] string detail = "")
         {
             var file = name.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? name : name + ".json";
             var path = Path.IsPathRooted(name) ? name : Path.Combine(TestsFolder, file);
@@ -47,7 +49,7 @@ namespace ValAgentBridge.Tools
             JObject parsed;
             try { parsed = JObject.Parse(text); }
             catch (Exception ex) { return new { success = false, error = $"{Path.GetFileName(path)} is not valid JSON: {ex.Message}" }; }
-            return Execute(parsed, Path.GetFileNameWithoutExtension(path));
+            return Execute(parsed, Path.GetFileNameWithoutExtension(path), detail);
         }
 
         /// <summary>A test script shipped inside the DLL (tests\*.json at build time), or null.</summary>
@@ -73,13 +75,32 @@ namespace ValAgentBridge.Tools
             return new { success = true, folder = TestsFolder, tests, builtIn = BuiltInNames().OrderBy(n => n).ToList(), latestResults = results };
         }
 
-        private static object Execute(JObject script, string fallbackName)
+        /// <summary>State of one script run, shared by its steps and the steps inside repeat blocks.</summary>
+        private sealed class RunState
+        {
+            public readonly Dictionary<string, JToken> vars = new Dictionary<string, JToken>();
+            public readonly JArray report = new JArray();
+            public JToken? last;
+            public bool passed = true, stopOnFail, screenshotOnFail;
+            public int stepsRun, ok, failed, optionalFailed;
+        }
+
+        private const int MaxStepsPerRun = 10000;
+
+        private static object Execute(JObject script, string fallbackName, string detail)
         {
             var name = script.Value<string>("name") ?? fallbackName;
             if (!(script["steps"] is JArray steps) || steps.Count == 0)
                 return new { success = false, error = "The script needs a non-empty \"steps\" array." };
-            bool stopOnFail = script.Value<bool?>("stopOnFail") ?? true;
-            bool screenshotOnFail = script.Value<bool?>("screenshotOnFail") ?? true;
+            if (string.IsNullOrWhiteSpace(detail)) detail = script.Value<string>("detail") ?? "summary";
+            detail = detail.Trim().ToLowerInvariant();
+            if (detail != "summary" && detail != "full")
+                return new { success = false, error = "detail is \"summary\" (failed steps, messages, events) or \"full\" (every step)." };
+            var run = new RunState
+            {
+                stopOnFail = script.Value<bool?>("stopOnFail") ?? true,
+                screenshotOnFail = script.Value<bool?>("screenshotOnFail") ?? true
+            };
             // "clearHostiles": radius removes hostile creatures near the player before the first step.
             if (script["clearHostiles"] != null)
             {
@@ -115,102 +136,10 @@ namespace ValAgentBridge.Tools
             }
 
             long logMark = Recorder.LastLogSeq, msgMark = Recorder.LastMessageSeq, eventMark = Recorder.LastEventSeq;
-            var vars = new Dictionary<string, JToken>();
-            var report = new JArray();
             var clock = Stopwatch.StartNew();
-            JToken? last = null;
-            bool passed = true;
             ValAgentBridgePlugin.ModLogger.LogInfo($"test/run '{name}': {steps.Count} steps");
 
-            for (int i = 0; i < steps.Count; i++)
-            {
-                var step = steps[i] as JObject ?? new JObject();
-                var entry = new JObject { ["step"] = i + 1 };
-                if (step["note"] != null) entry["note"] = step["note"];
-                var failures = new List<string>();
-                var stepClock = Stopwatch.StartNew();
-                try
-                {
-                    if (step["call"] != null)
-                    {
-                        last = Call(step.Value<string>("call")!, Substitute(step["args"], vars));
-                        entry["call"] = step["call"];
-                        entry["result"] = Shorten(last);
-                        if (last.Type == JTokenType.Object && last.Value<bool?>("success") == false && step.Value<bool?>("allowFail") != true)
-                            failures.Add("tool failed: " + (last.Value<string>("error") ?? "no reason given"));
-                    }
-                    else if (step["wait"] != null)
-                    {
-                        Thread.Sleep(TimeSpan.FromSeconds(Clamp(step.Value<double>("wait"), 0, 600)));
-                    }
-                    else if (step["waitUntil"] is JObject || step["waitUntil"]?.Type == JTokenType.String)
-                    {
-                        JObject until;
-                        JToken? checks;
-                        if (step["waitUntil"] is JObject u) { until = u; checks = Substitute(step["until"] ?? u["until"], vars); }
-                        else
-                        {
-                            // Shorthand: a phase name from world/status.
-                            until = new JObject { ["call"] = "world/status" };
-                            checks = new JArray(new JObject { ["path"] = "phase", ["equals"] = step["waitUntil"] });
-                        }
-                        double timeout = Clamp(step.Value<double?>("timeout") ?? 60, 1, 1800);
-                        double every = Clamp(step.Value<double?>("every") ?? 1, 0.2, 60);
-                        var waitClock = Stopwatch.StartNew();
-                        while (true)
-                        {
-                            last = Call(until.Value<string>("call")!, Substitute(until["args"], vars));
-                            if (Check(last, checks).Count == 0) break;
-                            if (waitClock.Elapsed.TotalSeconds >= timeout)
-                            {
-                                failures.Add($"waited {timeout}s: " + string.Join("; ", Check(last, checks)));
-                                break;
-                            }
-                            Thread.Sleep(TimeSpan.FromSeconds(every));
-                        }
-                        entry["waitedFor"] = until["call"];
-                        entry["result"] = Shorten(last);
-                    }
-                    else if (step["screenshot"] != null)
-                    {
-                        var args = new JObject { ["maxWidth"] = step.Value<int?>("maxWidth") ?? 1280 };
-                        last = Call("screen/capture", args);
-                        entry["screenshot"] = last.Value<string>("path");
-                    }
-                    else if (step["note"] == null)
-                    {
-                        failures.Add("unknown step: needs call, wait, waitUntil (an object, or \"in_world\" / \"main_menu\"), screenshot or note");
-                    }
-
-                    if (step["expect"] != null)
-                        failures.AddRange(Check(last, Substitute(step["expect"], vars)));
-                    if (step["saveAs"] != null && last != null)
-                        vars[step.Value<string>("saveAs")!] = last;
-                }
-                catch (Exception ex)
-                {
-                    failures.Add("error: " + ex.GetBaseException().Message);
-                }
-
-                entry["ok"] = failures.Count == 0;
-                if (failures.Count > 0)
-                {
-                    entry["failures"] = new JArray(failures);
-                    // A picture of the moment it went wrong.
-                    if (screenshotOnFail)
-                    {
-                        try { entry["failScreenshot"] = Call("screen/capture", new JObject { ["maxWidth"] = 1280 }).Value<string>("path"); }
-                        catch (Exception ex) { entry["failScreenshot"] = "not taken: " + ex.GetBaseException().Message; }
-                    }
-                }
-                entry["seconds"] = Math.Round(stepClock.Elapsed.TotalSeconds, 2);
-                report.Add(entry);
-                if (failures.Count > 0)
-                {
-                    passed = false;
-                    if (stopOnFail) break;
-                }
-            }
+            RunSteps(steps, run, "");
 
             if (keepClear != null)
             {
@@ -228,12 +157,15 @@ namespace ValAgentBridge.Tools
             {
                 ["success"] = true,
                 ["name"] = name,
-                ["passed"] = passed,
-                ["stepsRun"] = report.Count,
-                ["stepsTotal"] = steps.Count,
+                ["passed"] = run.passed,
+                ["stepsRun"] = run.stepsRun,
+                ["stepsOk"] = run.ok,
+                ["stepsFailed"] = run.failed,
+                ["optionalFailed"] = run.optionalFailed,
+                ["stepsInScript"] = steps.Count,
                 ["hostilesClearedDuringRun"] = keepClear != null ? clearedDuringRun : (JToken?)null,
                 ["seconds"] = Math.Round(clock.Elapsed.TotalSeconds, 1),
-                ["steps"] = report,
+                ["steps"] = run.report,
                 ["warningsAndErrors"] = JToken.FromObject(Recorder.LogSince(logMark, "warning", "", 200)),
                 ["messages"] = JToken.FromObject(Recorder.MessagesSince(msgMark, 200)),
                 ["events"] = JToken.FromObject(Recorder.EventsSince(eventMark, "", 200))
@@ -249,13 +181,155 @@ namespace ValAgentBridge.Tools
             {
                 reportFile = "not saved: " + ex.Message;
             }
-            // The answer is a summary (repeats counted once); the file keeps every line.
+            // The answer is a summary (repeats counted once); the file keeps every line and every step.
             result["warningsAndErrors"] = Group((JArray)result["warningsAndErrors"]!, "level", 15);
             result["messages"] = Group((JArray)result["messages"]!, "type", 15);
             result["events"] = SummariseEvents((JArray)result["events"]!);
+            result["detail"] = detail;
+            if (detail == "summary")
+            {
+                // Failed steps (optional ones too) and steps marked "report": true; the rest only in reportFile.
+                var shown = new JArray(run.report.OfType<JObject>().Where(e => e.Value<bool?>("ok") == false || e.Value<bool?>("report") == true)
+                    .Select(e => { var c = (JObject)e.DeepClone(); if (c["result"] != null) c["result"] = Shorten(c["result"], 600); return c; }));
+                result["steps"] = shown;
+                result["stepsNote"] = $"summary: {shown.Count} of {run.report.Count} steps shown (failed, or marked \"report\": true); every step is in reportFile, or run with detail \"full\"";
+            }
             result["reportFile"] = reportFile;
-            ValAgentBridgePlugin.ModLogger.LogInfo($"test/run '{name}': {(passed ? "PASSED" : "FAILED")} after {report.Count} step(s)");
+            ValAgentBridgePlugin.ModLogger.LogInfo($"test/run '{name}': {(run.passed ? "PASSED" : "FAILED")} after {run.stepsRun} step(s), {run.failed} failed, {run.optionalFailed} optional failed");
             return result;
+        }
+
+        /// <summary>Runs a list of steps (the script's, or a repeat block's). False once the run must stop.</summary>
+        private static bool RunSteps(JArray steps, RunState run, string prefix)
+        {
+            for (int i = 0; i < steps.Count; i++)
+            {
+                if (run.stepsRun >= MaxStepsPerRun)
+                {
+                    run.report.Add(new JObject { ["step"] = prefix + (i + 1), ["ok"] = false, ["failures"] = new JArray($"stopped: more than {MaxStepsPerRun} steps in one run") });
+                    run.failed++;
+                    run.passed = false;
+                    return false;
+                }
+                var step = steps[i] as JObject ?? new JObject();
+                var label = prefix + (i + 1);
+
+                // {"repeat": N, "steps": [...], "as": "round"}: the inner steps N times; ${round} is 1..N.
+                if (step["repeat"] != null)
+                {
+                    int times = (int)Clamp(step.Value<double?>("repeat") ?? 0, 0, 1000);
+                    if (!(step["steps"] is JArray inner) || inner.Count == 0)
+                    {
+                        run.report.Add(new JObject { ["step"] = label, ["ok"] = false, ["failures"] = new JArray("repeat needs a non-empty \"steps\" array") });
+                        run.failed++;
+                        run.passed = false;
+                        if (run.stopOnFail) return false;
+                        continue;
+                    }
+                    var counter = step.Value<string>("as");
+                    run.report.Add(new JObject { ["step"] = label, ["repeat"] = times, ["ok"] = true });
+                    for (int round = 1; round <= times; round++)
+                    {
+                        if (!string.IsNullOrEmpty(counter)) run.vars[counter!] = round;
+                        if (!RunSteps(inner, run, $"{label}.{round}.")) return false;
+                    }
+                    continue;
+                }
+
+                run.stepsRun++;
+                var entry = new JObject { ["step"] = prefix.Length == 0 ? (JToken)(i + 1) : label };
+                if (step["note"] != null) entry["note"] = step["note"];
+                if (step.Value<bool?>("report") == true) entry["report"] = true;
+                bool optional = step.Value<bool?>("optional") == true || step.Value<bool?>("continueOnFail") == true;
+                var failures = new List<string>();
+                var stepClock = Stopwatch.StartNew();
+                try
+                {
+                    if (step["call"] != null)
+                    {
+                        run.last = Call(step.Value<string>("call")!, Substitute(step["args"], run.vars));
+                        entry["call"] = step["call"];
+                        entry["result"] = Shorten(run.last);
+                        if (run.last.Type == JTokenType.Object && run.last.Value<bool?>("success") == false && step.Value<bool?>("allowFail") != true)
+                            failures.Add("tool failed: " + (run.last.Value<string>("error") ?? "no reason given"));
+                    }
+                    else if (step["wait"] != null)
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(Clamp(step.Value<double>("wait"), 0, 600)));
+                    }
+                    else if (step["waitUntil"] is JObject || step["waitUntil"]?.Type == JTokenType.String)
+                    {
+                        JObject until;
+                        JToken? checks;
+                        if (step["waitUntil"] is JObject u) { until = u; checks = Substitute(step["until"] ?? u["until"], run.vars); }
+                        else
+                        {
+                            // Shorthand: a phase name from world/status.
+                            until = new JObject { ["call"] = "world/status" };
+                            checks = new JArray(new JObject { ["path"] = "phase", ["equals"] = step["waitUntil"] });
+                        }
+                        double timeout = Clamp(step.Value<double?>("timeout") ?? 60, 1, 1800);
+                        double every = Clamp(step.Value<double?>("every") ?? 1, 0.2, 60);
+                        var waitClock = Stopwatch.StartNew();
+                        while (true)
+                        {
+                            run.last = Call(until.Value<string>("call")!, Substitute(until["args"], run.vars));
+                            if (Check(run.last, checks).Count == 0) break;
+                            if (waitClock.Elapsed.TotalSeconds >= timeout)
+                            {
+                                failures.Add($"waited {timeout}s: " + string.Join("; ", Check(run.last, checks)));
+                                break;
+                            }
+                            Thread.Sleep(TimeSpan.FromSeconds(every));
+                        }
+                        entry["waitedFor"] = until["call"];
+                        entry["result"] = Shorten(run.last);
+                    }
+                    else if (step["screenshot"] != null)
+                    {
+                        var args = new JObject { ["maxWidth"] = step.Value<int?>("maxWidth") ?? 1280 };
+                        run.last = Call("screen/capture", args);
+                        entry["screenshot"] = run.last.Value<string>("path");
+                    }
+                    else if (step["note"] == null)
+                    {
+                        failures.Add("unknown step: needs call, wait, waitUntil (an object, or \"in_world\" / \"main_menu\"), repeat, screenshot or note");
+                    }
+
+                    if (step["expect"] != null)
+                        failures.AddRange(Check(run.last, Substitute(step["expect"], run.vars)));
+                    if (step["saveAs"] != null && run.last != null)
+                        run.vars[step.Value<string>("saveAs")!] = run.last;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add("error: " + ex.GetBaseException().Message);
+                }
+
+                entry["ok"] = failures.Count == 0;
+                if (failures.Count > 0)
+                {
+                    entry["failures"] = new JArray(failures);
+                    if (optional) entry["optional"] = true;
+                    // A picture of the moment it went wrong (not for optional steps: they are expected to fail at times).
+                    if (run.screenshotOnFail && !optional)
+                    {
+                        try { entry["failScreenshot"] = Call("screen/capture", new JObject { ["maxWidth"] = 1280 }).Value<string>("path"); }
+                        catch (Exception ex) { entry["failScreenshot"] = "not taken: " + ex.GetBaseException().Message; }
+                    }
+                }
+                entry["seconds"] = Math.Round(stepClock.Elapsed.TotalSeconds, 2);
+                run.report.Add(entry);
+                if (failures.Count == 0) run.ok++;
+                else if (optional) run.optionalFailed++;
+                else
+                {
+                    run.failed++;
+                    run.passed = false;
+                    if (run.stopOnFail) return false;
+                }
+            }
+            return true;
         }
 
         private static JToken Call(string tool, JToken? args)
@@ -341,11 +415,11 @@ namespace ValAgentBridge.Tools
         }
 
         // Big results (prefab lists etc.) would swamp the report.
-        private static JToken Shorten(JToken? t)
+        private static JToken Shorten(JToken? t, int max = 3000)
         {
             if (t == null) return JValue.CreateNull();
             var text = t.ToString(Formatting.None);
-            return text.Length <= 3000 ? t : new JObject { ["truncated"] = true, ["start"] = text.Substring(0, 3000) };
+            return text.Length <= max ? t : new JObject { ["truncated"] = true, ["start"] = text.Substring(0, max) };
         }
 
         /// <summary>Identical lines become one entry with a count and first/last time.</summary>

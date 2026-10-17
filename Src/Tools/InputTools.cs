@@ -54,6 +54,7 @@ namespace ValAgentBridge.Tools
                     int down = Time.frameCount + 1, up = down + holdFrames;
                     foreach (var k in all) Keys[k] = new Simulated { down = mods.Contains(k) ? down - 1 : down, up = up };
                     bool kb = Keyboard.current != null;
+                    OwnerControl.SimulatingUntilFrame = Math.Max(OwnerControl.SimulatingUntilFrame, up + 3);
                     if (kb) MainThreadDispatcher.Instance.StartCoroutine(PressInputSystem(all, up));
                     return (up, kb);
                 }, 5000);
@@ -84,6 +85,158 @@ namespace ValAgentBridge.Tools
                 modHotkeys = _patched,
                 note = _patchProblem
             };
+        }
+
+        // ---- Mouse: queued Input System mouse states (wheel, buttons, position), seen by the game and its menus ----
+
+        private static readonly AccessTools.FieldRef<Minimap, float>? MapZoom =
+            AccessTools.Field(typeof(Minimap), "m_largeZoom") is { } zf ? AccessTools.FieldRefAccess<Minimap, float>(zf) : null;
+        private static readonly AccessTools.FieldRef<Minimap, Vector3>? MapOffset =
+            AccessTools.Field(typeof(Minimap), "m_mapOffset") is { } of ? AccessTools.FieldRefAccess<Minimap, Vector3>(of) : null;
+
+        [Tool("input/scroll", Description = "Turn the mouse wheel, as if by hand: map zoom (positive = up = zoom in), build-menu tabs, lists. Optional x/y put the pointer there first (fractions of the screen, 0,0 = top left). With the large map open the answer gives its zoom before and after. Returns when done.")]
+        public object Scroll(
+            [ToolParameter(Description = "Wheel notches: positive = up (map zooms in), negative = down")] int notches,
+            [ToolParameter(Description = "Pointer x as a fraction of the screen width (0 = left, 1 = right); leave out to keep it where it is")] float x = -1f,
+            [ToolParameter(Description = "Pointer y as a fraction of the screen height (0 = top, 1 = bottom)")] float y = -1f,
+            [ToolParameter(Description = "Wheel value per notch (default: what the game gets from a real wheel)")] float perNotch = 0f)
+        {
+            if (notches == 0) return new { success = false, error = "notches must not be 0." };
+            notches = Mathf.Clamp(notches, -50, 50);
+            return RunMouse(() => ScrollRoutine(notches, x, y, perNotch), Math.Abs(notches) * 3 + 10, "scroll " + notches);
+        }
+
+        [Tool("input/drag", Description = "Drag with a mouse button held, as if by hand: pan the large map, move a slider or an item. Points are fractions of the screen (0,0 = top left, 1,1 = bottom right). With the large map open the answer gives how far the map moved. Returns when done.")]
+        public object Drag(
+            [ToolParameter(Description = "Start x (fraction of screen width)")] float fromX,
+            [ToolParameter(Description = "Start y (fraction of screen height, 0 = top)")] float fromY,
+            [ToolParameter(Description = "End x")] float toX,
+            [ToolParameter(Description = "End y")] float toY,
+            [ToolParameter(Description = "left, right or middle (default left)")] string button = "left",
+            [ToolParameter(Description = "How long the move takes in seconds (default 0.5)")] float seconds = 0.5f)
+        {
+            MouseButton which;
+            switch (button.Trim().ToLowerInvariant())
+            {
+                case "left": which = MouseButton.Left; break;
+                case "right": which = MouseButton.Right; break;
+                case "middle": which = MouseButton.Middle; break;
+                default: return new { success = false, error = "button is left, right or middle." };
+            }
+            seconds = Mathf.Clamp(seconds, 0.05f, 10f);
+            return RunMouse(() => DragRoutine(new Vector2(fromX, fromY), new Vector2(toX, toY), which, seconds), seconds + 10, $"drag {button} ({fromX:F2},{fromY:F2}) -> ({toX:F2},{toY:F2})");
+        }
+
+        private static object RunMouse(Func<IEnumerator> routine, float maxSeconds, string what)
+        {
+            var done = new System.Threading.ManualResetEventSlim(false);
+            object? map = null;
+            string? problem = null;
+            try
+            {
+                problem = MainThreadDispatcher.Run(() =>
+                {
+                    if (Mouse.current == null) return "No mouse device in the game.";
+                    map = MapState();
+                    MainThreadDispatcher.Instance.StartCoroutine(Wrap(routine(), done));
+                    return (string?)null;
+                }, 5000);
+            }
+            catch (Exception ex) { problem = ex.GetBaseException().Message; }
+            if (problem != null) return new { success = false, error = problem };
+            if (!done.Wait(TimeSpan.FromSeconds(maxSeconds)))
+                return new { success = false, error = "The game did not finish the mouse input in time (paused or loading?)." };
+            object? after = null;
+            try { after = MainThreadDispatcher.Run(MapState, 3000); } catch (Exception) { }
+            ValAgentBridgePlugin.ModLogger.LogInfo($"input/{what}");
+            return new { success = true, did = what, mapBefore = map, mapAfter = after };
+        }
+
+        private static IEnumerator Wrap(IEnumerator inner, System.Threading.ManualResetEventSlim done)
+        {
+            try
+            {
+                while (true)
+                {
+                    OwnerControl.SimulatingUntilFrame = Time.frameCount + 3;
+                    bool more;
+                    try { more = inner.MoveNext(); }
+                    catch (Exception ex) { ValAgentBridgePlugin.ModLogger.LogWarning("Simulated mouse input failed: " + ex.Message); break; }
+                    if (!more) break;
+                    yield return inner.Current;
+                }
+            }
+            finally
+            {
+                OwnerControl.SimulatingUntilFrame = Time.frameCount + 3;
+                done.Set();
+            }
+        }
+
+        /// <summary>Large map zoom and offset when it is open (null otherwise), to show what the input did.</summary>
+        private static object? MapState()
+        {
+            var map = Minimap.instance;
+            if (map == null || !Minimap.IsOpen() || MapZoom == null || MapOffset == null) return null;
+            var off = MapOffset(map);
+            return new { zoom = Math.Round(MapZoom(map), 4), offsetX = Math.Round(off.x), offsetZ = Math.Round(off.z) };
+        }
+
+        /// <summary>Screen fractions (0,0 top left) to Input System pixels (0,0 bottom left).</summary>
+        private static Vector2 ToScreen(Vector2 fraction) =>
+            new Vector2(Mathf.Clamp01(fraction.x) * Screen.width, (1f - Mathf.Clamp01(fraction.y)) * Screen.height);
+
+        private static void QueueMouse(Vector2 position, Vector2 delta, Vector2 scroll, MouseButton? held)
+        {
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+            var state = new MouseState { position = position, delta = delta, scroll = scroll };
+            if (held.HasValue) state = state.WithButton(held.Value, true);
+            InputSystem.QueueStateEvent(mouse, state);
+        }
+
+        private static IEnumerator ScrollRoutine(int notches, float x, float y, float perNotch)
+        {
+            var mouse = Mouse.current;
+            var pos = x >= 0f && y >= 0f ? ToScreen(new Vector2(x, y)) : mouse.position.ReadValue();
+            if (perNotch <= 0f)
+                perNotch = InputSystem.settings.scrollDeltaBehavior == InputSettings.ScrollDeltaBehavior.UniformAcrossAllPlatforms ? 1f : 120f;
+            QueueMouse(pos, Vector2.zero, Vector2.zero, null);
+            yield return null;
+            for (int i = 0; i < Math.Abs(notches); i++)
+            {
+                QueueMouse(pos, Vector2.zero, new Vector2(0f, Math.Sign(notches) * perNotch), null);
+                yield return null;
+                QueueMouse(pos, Vector2.zero, Vector2.zero, null);
+                yield return null;
+                yield return null;
+            }
+        }
+
+        private static IEnumerator DragRoutine(Vector2 from, Vector2 to, MouseButton button, float seconds)
+        {
+            Vector2 a = ToScreen(from), b = ToScreen(to), last = a;
+            QueueMouse(a, Vector2.zero, Vector2.zero, null);
+            yield return null;
+            yield return null;
+            QueueMouse(a, Vector2.zero, Vector2.zero, button);
+            float start = Time.unscaledTime;
+            while (Time.unscaledTime - start < 0.1f) yield return null;    // pressed before it moves, like a hand
+            start = Time.unscaledTime;
+            while (true)
+            {
+                float t = Mathf.Clamp01((Time.unscaledTime - start) / seconds);
+                var p = Vector2.Lerp(a, b, t);
+                QueueMouse(p, p - last, Vector2.zero, button);
+                last = p;
+                yield return null;
+                if (t >= 1f) break;
+            }
+            QueueMouse(b, Vector2.zero, Vector2.zero, button);
+            yield return null;
+            QueueMouse(b, Vector2.zero, Vector2.zero, null);
+            yield return null;
+            yield return null;
         }
 
         private static bool TryKey(string name, out KeyCode key)

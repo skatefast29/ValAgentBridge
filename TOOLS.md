@@ -8,6 +8,12 @@ Not sure of a name: `games_tool_names` (`brief: true`) and `games_tool_detail`.
 
 Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change the live game and are logged.
 
+**Owner in control.** Tools that move, turn or teleport the character (`player/teleport`, `player/look_*`,
+`player/move_direction`, `player/navigate_to_position`, `player/jump`, `player/dodge`, `player/interact_object`)
+refuse while the owner is steering a ship or standing on a moving one, sitting, in a menu (inventory, map, chat,
+console, game menu, ...) or used keyboard, mouse or gamepad in the last 5 s. The answer has `ownerInControl` with
+the reason. Ask the owner, then pass `force: true`. The bridge's own simulated keys and mouse don't count as input.
+
 ## Player state
 
 | Tool | What it does |
@@ -48,6 +54,9 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 | `player/jump`, `player/dodge`, `player/set_crouch` | Single inputs; `dodge` takes a world direction (`x` east, `z` north; default backward) |
 | `player/primary_attack`, `player/secondary_attack`, `player/block` | Single attack, or start/stop blocking (held until `active=false`) |
 | `player/interact` | Press E on whatever is hovered |
+| `player/interact_object` | Use an object by `instanceId` without aiming: crafting station, chest, portal (name box; `travel: true` goes through), door, bed, ship controls. `component` picks a part when there are several (`Container`, `ShipControlls`, `Ladder`). Says what opened (`opened`: container with item count, crafting station with level, text input, door state) or what the game said. Too far is an error with the distance (stations about 2-3 m, chests close beyond 4 m) |
+| `input/scroll` | Mouse wheel `notches` (+ = up = map zoom in), optional pointer `x`/`y` (screen fractions, 0,0 top left). With the large map open: `mapBefore`/`mapAfter` zoom |
+| `input/drag` | Drag with a button held (`fromX`, `fromY`, `toX`, `toY` screen fractions, `button` left/right/middle, `seconds`), e.g. pan the large map; `mapBefore`/`mapAfter` show the offset |
 
 ## Crafting and building
 
@@ -70,11 +79,13 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 | `world/save` | Save the world and characters now |
 | `world/find_locations` | Nearest generated places by (part of) name: trader `Vendor`, boss altars (`Eikthyrnir`, `GDKing`, ...), dungeons (`Crypt`, `SunkenCrypt`, `TrollCave`), `StartTemple`. No name = list the place types in this world |
 | `world/spawn_creature` | **(cheat)** Spawn `amount` creatures (`name`, `level` 1-3 stars+1, `distance`, `tamed`) in front of the player; returns instanceIds |
-| `world/remove_objects` | **(cheat)** Remove objects by instanceId (`ids` as a JSON array), e.g. creatures spawned for a test |
+| `world/spawn_object` | **(cheat)** Spawn any prefab (boats such as `Karve`, `VikingShip`, `Raft`; carts; rocks; ...) like the game's spawn command, at `x`/`z` or `forward`/`right` metres from the player (default 15 m ahead for boats, 3 m otherwise). Boats sit on the water surface facing the player's way (`heading` to choose); other things on the ground; `y` to set the height. Refuses a spot that overlaps a ship, or a boat on top of a player, unless `force`. Returns the instanceId. Building pieces: `player/place_piece` |
+| `world/remove_objects` | **(cheat)** Remove objects by instanceId (`ids`: `[123, 456]`; a JSON string of the array also works), e.g. creatures spawned for a test |
 | `env/status` | Hour, day, current weather, whether time/weather are pinned, weather names |
 | `env/set_time` | **(cheat)** Jump forward to an `hour` (0-24) like sleeping, or `pin` it there for repeatable tests; `hour` -1 releases a pinned time |
 | `env/set_weather` | **(cheat)** Force a weather by name (`env/status` lists them); empty = normal weather |
 | `time/status`, `time/set_speed`, `time/pause` | Game speed (0.1 to 10x) and pause; single player only |
+| `console/set_devcommands` | Switch devcommands to `on` true/false; does nothing when it is already so (typing `devcommands` flips it, so `console/run_command` refuses that and points here). Turning it on marks the character as having used cheats: only when the owner asks. `cheatsWork` says whether cheat commands can run here |
 | `console/run_command` | Run a console command and get the console's output. Cheat commands need `allowCheats: true`, which turns devcommands on for that one command; the game then marks the character as having used cheats. If devcommands is already on (e.g. a mod turns it on automatically), cheat commands run like any other; `cheat` and `cheatsOn` in the answer say so |
 | `znetscene/search_prefabs` | World prefabs by part of the name, each with its kind (`creature`, `item`, `piece`, `other`); `kind` filters, e.g. creatures for `world/spawn_creature` |
 | `znetscene/get_prefab` | One prefab by exact name: kind, layer, components |
@@ -111,7 +122,7 @@ Cheat-like tools are marked **(cheat)**. They work without `devcommands`, change
 
 `test/run` takes a script inline (a JSON object, or the same as a string), `test/run_file` reads
 `BepInEx\ValAgentBridge\tests\<name>.json` (the files in `tests\` are copied there on deploy and also built into the
-bridge, so `enter-world`, `quick-check`, `inventory-items-console` and `world-controls` work in any profile), `test/list_files` lists them and the
+bridge, so `enter-world`, `quick-check`, `inventory-items-console`, `world-controls` and `runner-features` work in any profile), `test/list_files` lists them and the
 latest results.
 
 ```json
@@ -138,12 +149,27 @@ latest results.
 - `"waitUntil": "in_world"` (or `"main_menu"`, `"loading"`) is short for waiting on `world/status`'s phase.
 - An unknown tool name fails the step and lists the closest names.
 - A tool answering `success: false` fails the step unless the step has `"allowFail": true`.
+- `"optional": true` (or `"continueOnFail": true`) on a step: if it fails, the failure is listed (`"optional": true`,
+  counted in `optionalFailed`) but the run goes on and can still pass, e.g. one chest that is in use.
+- `{ "repeat": 10, "as": "round", "steps": [ ... ] }` runs the inner steps 10 times (at most 1000); `${round}` is
+  1..10. Inner steps are numbered `3.2.1` (step 3, round 2, inner step 1). At most 10000 steps per run.
+- `"report": true` on a step shows it in the summary even when it passed.
 - `"saveAs": "hp"` keeps the step's result; later args and checks can use `${hp}` or `${hp.health}`.
 - A failing step gets a screenshot (top-level `"screenshotOnFail": false` turns that off).
-- The answer lists every step (ok, failures, seconds, trimmed result), plus a summary of the warnings/errors
-  logged, on-screen messages (identical lines once, with a count) and player events (count per channel, deaths,
-  the last few). The full report with every line is saved to `BepInEx\ValAgentBridge\test-results\` (`reportFile`).
+- The answer is a summary: counts (`stepsRun`, `stepsOk`, `stepsFailed`, `optionalFailed`), the failed steps and
+  those marked `"report": true` (results trimmed), the warnings/errors logged, on-screen messages (identical lines
+  once, with a count) and player events (count per channel, deaths, the last few). `detail: "full"` (argument of
+  `test/run` / `test/run_file`, or top-level in the script) lists every step instead. The full report with every
+  step and line is always saved to `BepInEx\ValAgentBridge\test-results\` (`reportFile`).
 - Calls with long waits need a longer GABS `timeout`.
+
+## Frames with bridge work (for ValPerfMonitor)
+
+Tool calls run on the game's main thread and can cost tens of ms in that frame. A measuring mod can leave those
+frames out by reading these statics on `ValAgentBridge.MainThreadDispatcher` (by reflection; the bridge may be absent):
+`WorkedInFrame(int frame)` (true if bridge work ran in that `Time.frameCount`; last 256 frames), `LastWorkFrame`,
+`LastWorkMs`, `WorkFrames` (count). The work runs in the dispatcher's `Update`, so check the previous frame at the
+start of the next one.
 
 ## Commands from other mods
 

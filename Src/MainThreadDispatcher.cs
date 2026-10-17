@@ -90,16 +90,42 @@ namespace ValAgentBridge
         /// <summary>Recent frame time in ms (smoothed), as last seen by the main thread.</summary>
         public static float FrameMs => _smoothedFrameMs;
 
+        // ---- Frames with bridge work, for ValPerfMonitor (read by reflection; keep these names) ----
+        // Tool calls run here on the main thread and can take tens of ms; a measurement should leave those frames out.
+
+        private static readonly int[] WorkRing = new int[256];
+
+        /// <summary>Last Time.frameCount in which queued bridge work ran (-1 = none yet).</summary>
+        public static int LastWorkFrame = -1;
+
+        /// <summary>Milliseconds the bridge's work took in <see cref="LastWorkFrame"/>.</summary>
+        public static double LastWorkMs;
+
+        /// <summary>Frames with bridge work since the game started.</summary>
+        public static long WorkFrames;
+
+        /// <summary>True if the bridge ran queued work in that frame (the last 256 frames are remembered). Main thread.</summary>
+        public static bool WorkedInFrame(int frame) => frame >= 0 && WorkRing[frame & 255] == frame + 1;
+
         private void Update()
         {
             Interlocked.Exchange(ref _lastFrameMs, Clock.ElapsedMilliseconds);
             var dt = Time.unscaledDeltaTime * 1000f;
             _smoothedFrameMs = _smoothedFrameMs <= 0 ? dt : _smoothedFrameMs * 0.9f + dt * 0.1f;
+            try { OwnerControl.Watch(); }
+            catch (Exception) { }
+            if (ExecutionQueue.IsEmpty) return;
+            long start = System.Diagnostics.Stopwatch.GetTimestamp();
             while (ExecutionQueue.TryDequeue(out var action))
             {
                 try { action(); }
                 catch (Exception e) { ValAgentBridgePlugin.ModLogger.LogError($"Queued bridge work failed: {e}"); }
             }
+            int frame = Time.frameCount;
+            WorkRing[frame & 255] = frame + 1;
+            LastWorkMs = (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            LastWorkFrame = frame;
+            WorkFrames++;
         }
     }
 }

@@ -1,0 +1,16 @@
+{
+  "name": "runner-features",
+  "screenshotOnFail": false,
+  "steps": [
+    { "call": "world/status", "expect": [ { "path": "phase", "equals": "in_world" } ] },
+    { "repeat": 3, "as": "round", "steps": [
+      { "call": "player/get_position", "saveAs": "pos" },
+      { "note": "round ${round}" }
+    ] },
+    { "note": "this step fails on purpose and is optional: the run must still pass" },
+    { "call": "player/look_at_object", "args": { "instanceId": 0 }, "optional": true },
+    { "call": "world/remove_objects", "args": { "ids": "[0]" }, "expect": [ { "path": "notFound", "equals": 1 } ] },
+    { "call": "world/remove_objects", "args": { "ids": [0, 1] }, "expect": [ { "path": "notFound", "equals": 2 } ] },
+    { "call": "player/get_position", "report": true }
+  ]
+}

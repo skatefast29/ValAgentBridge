@@ -21,6 +21,15 @@ namespace ValAgentBridge.Tools
 
         private static object Fail(string error) => new { success = false, error };
 
+        /// <summary>The "owner is in control" answer, or null when the tool may go ahead (checked on the main thread).</summary>
+        private static object? OwnerRefusal(bool force, string what)
+        {
+            if (force) return null;
+            var answer = MainThreadDispatcher.RunTool(() =>
+                Player.m_localPlayer == null ? NoPlayer : OwnerControl.Refusal(Player.m_localPlayer, false, what) ?? (object)"ok");
+            return answer is string ? null : answer;
+        }
+
         private static object Vec(Vector3 v) => new { x = v.x, y = v.y, z = v.z };
 
         // ---------- State ----------
@@ -375,8 +384,10 @@ namespace ValAgentBridge.Tools
         [Tool("player/look_at_position", Description = "Face the player toward a world position (XZ plane).")]
         public object LookAtPosition(
             [ToolParameter(Description = "X coordinate to look at")] float x,
-            [ToolParameter(Description = "Z coordinate to look at")] float z) => WithPlayer(player =>
+            [ToolParameter(Description = "Z coordinate to look at")] float z,
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false) => WithPlayer(player =>
         {
+            if (OwnerControl.Refusal(player, force, "Turning") is object refused) return refused;
             var pos = player.transform.position;
             if (!PlayerLook.Face(player, new Vector3(x - pos.x, 0f, z - pos.z))) return Fail("Target position is too close to player");
             return new { success = true, message = $"Now facing ({x:F1}, {z:F1})" };
@@ -384,8 +395,10 @@ namespace ValAgentBridge.Tools
 
         [Tool("player/look_at_object", Description = "Face the player toward a specific object by instanceId.")]
         public object LookAtObject(
-            [ToolParameter(Description = "Instance ID of the target object (from find_nearby_prefabs or get_visible_objects)")] int instanceId) => WithPlayer(player =>
+            [ToolParameter(Description = "Instance ID of the target object (from find_nearby_prefabs or get_visible_objects)")] int instanceId,
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false) => WithPlayer(player =>
         {
+            if (OwnerControl.Refusal(player, force, "Turning") is object refused) return refused;
             var target = FindObject(instanceId);
             if (target == null) return Fail($"No live object with instanceId {instanceId}");
             if (!PlayerLook.Face(player, target.transform.position - player.transform.position)) return Fail("Target is too close to player");
@@ -411,10 +424,12 @@ namespace ValAgentBridge.Tools
             [ToolParameter(Description = "X component of direction (east/west)")] float x = 0f,
             [ToolParameter(Description = "Z component of direction (north/south)")] float z = 0f,
             [ToolParameter(Description = "Duration in seconds (default 1)")] float duration = 1f,
-            [ToolParameter(Description = "Run instead of walk (default false)")] bool run = false)
+            [ToolParameter(Description = "Run instead of walk (default false)")] bool run = false,
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false)
         {
             var dir = new Vector3(x, 0f, z);
             if (dir.magnitude < 0.01f) return Fail("Direction vector is zero");
+            if (OwnerRefusal(force, "Walking") is object refused) return refused;
             // Movement runs in game time; give up in real time so a paused game can't hang the call.
             return AwaitManager(
                 () => Player.m_localPlayer == null ? null : MovementManager.Instance.StartMoving(dir, run, duration),
@@ -426,8 +441,10 @@ namespace ValAgentBridge.Tools
         public object NavigateToPosition(
             [ToolParameter(Description = "X coordinate")] float x,
             [ToolParameter(Description = "Z coordinate")] float z,
-            [ToolParameter(Description = "Timeout in seconds (default 60)")] float timeout = 60f)
+            [ToolParameter(Description = "Timeout in seconds (default 60)")] float timeout = 60f,
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false)
         {
+            if (OwnerRefusal(force, "Walking") is object refused) return refused;
             return AwaitManager(
                 () =>
                 {
@@ -440,8 +457,10 @@ namespace ValAgentBridge.Tools
         }
 
         [Tool("player/jump", Description = "Make the player jump. Set move direction first for a directional jump.")]
-        public object Jump() => WithPlayer(player =>
+        public object Jump(
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false) => WithPlayer(player =>
         {
+            if (OwnerControl.Refusal(player, force, "Jumping") is object refused) return refused;
             player.Jump();
             return new { success = true, message = "Jump initiated" };
         });
@@ -449,8 +468,10 @@ namespace ValAgentBridge.Tools
         [Tool("player/dodge", Description = "Dodge roll in a direction. Costs stamina and grants brief invincibility.")]
         public object Dodge(
             [ToolParameter(Description = "X component of dodge direction")] float x = 0f,
-            [ToolParameter(Description = "Z component of dodge direction")] float z = 0f) => WithPlayer(player =>
+            [ToolParameter(Description = "Z component of dodge direction")] float z = 0f,
+            [ToolParameter(Description = "Do it even while the owner is steering, in a menu or just used keyboard/mouse (ask them first)")] bool force = false) => WithPlayer(player =>
         {
+            if (OwnerControl.Refusal(player, force, "Dodging") is object refused) return refused;
             var dir = new Vector3(x, 0f, z);
             if (dir.magnitude < 0.01f) dir = -player.GetLookDir(); // default: dodge backward
             dir.y = 0f;

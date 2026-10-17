@@ -26,7 +26,7 @@ namespace ValAgentBridge
                     var problem = CheckArgs(info, input);
                     return problem != null
                         ? Task.FromResult<object>(new { success = false, error = problem })
-                        : inner.CallToolAsync(name, input);
+                        : inner.CallToolAsync(name, ListsFromStrings(info, input));
                 }, info);
             }
         }
@@ -48,6 +48,29 @@ namespace ValAgentBridge
             if (unknown.Count > 0) parts.Add($"unknown argument{(unknown.Count > 1 ? "s" : "")} {string.Join(", ", unknown.Select(u => $"'{u}'"))}");
             if (missing.Count > 0) parts.Add($"missing {string.Join(", ", missing.Select(m => $"'{m}'"))}");
             return $"{info.Name}: {string.Join("; ", parts)}. It takes: {Describe(known)}.";
+        }
+
+        /// <summary>A list argument (e.g. ids) sent as a JSON string ("[1, 2]") becomes the list itself, so both work.</summary>
+        private static object? ListsFromStrings(ToolInfo info, object? input)
+        {
+            JObject? args;
+            try { args = input == null ? null : input as JObject ?? (input is string s ? JObject.Parse(s) : JObject.FromObject(input)); }
+            catch { return input; }
+            if (args == null) return input;
+            JObject? copy = null;
+            foreach (var p in info.Parameters)
+            {
+                if (p.Type == typeof(string) || !typeof(System.Collections.IEnumerable).IsAssignableFrom(p.Type)) continue;
+                var prop = args.Properties().FirstOrDefault(a => string.Equals(a.Name, p.Name, StringComparison.OrdinalIgnoreCase));
+                if (prop == null || prop.Value.Type != JTokenType.String) continue;
+                var text = prop.Value.Value<string>()!.Trim();
+                JToken parsed;
+                try { parsed = text.StartsWith("[") ? JToken.Parse(text) : new JArray(text.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)); }
+                catch (Exception) { continue; }    // Lib.GAB reports the bad value
+                copy ??= (JObject)args.DeepClone();
+                copy[prop.Name] = parsed;
+            }
+            return copy ?? input;
         }
 
         private static string Describe(List<ToolParameterInfo> parameters)

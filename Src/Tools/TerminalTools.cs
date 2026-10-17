@@ -25,6 +25,9 @@ namespace ValAgentBridge.Tools
                     return new { success = false, error = "The console isn't available (still loading?)", output = new List<string>() };
 
                 var name = command.Trim().Split(' ')[0].ToLowerInvariant();
+                // "devcommands" flips the setting: run while already on (e.g. a mod turned it on) it switches cheats off.
+                if (name == "devcommands")
+                    return new { success = false, error = "devcommands switches cheats on or off depending on how they are now. Use console/set_devcommands with on=true or on=false instead.", output = new List<string>() };
                 if (!Commands().TryGetValue(name, out var cmd))
                     return new { success = false, error = $"'{name}' is not a console command", output = new List<string>() };
 
@@ -52,6 +55,33 @@ namespace ValAgentBridge.Tools
                     cheat = isCheat,
                     cheatsOn,
                     error = ran ? null : (output.FirstOrDefault() ?? $"'{name}' is not valid in the current context."),
+                    output
+                };
+            });
+        }
+
+        [Tool("console/set_devcommands", Description = "Switch devcommands (the game's cheat commands) to on or off. Unlike typing 'devcommands', which flips it, this leaves it alone when it is already as asked. Turning it on lets cheat commands run and the game marks the character as having used cheats: only when the owner asks. Returns before/after.")]
+        public object SetDevcommands(
+            [ToolParameter(Description = "true = on, false = off")] bool on)
+        {
+            return MainThreadDispatcher.RunTool(() =>
+            {
+                if (Console.instance == null)
+                    return new { success = false, error = "The console isn't available (still loading?)", before = false, after = false, output = new List<string>() };
+                // m_cheat is what the command flips; IsCheatsEnabled also needs the right to cheat here (host, or a mod).
+                bool before = Terminal.m_cheat;
+                var output = new List<string>();
+                if (before != on)
+                    output = Recorder.CaptureConsole(() => Console.instance.TryRunCommand("devcommands", silentFail: false, skipAllowedCheck: true));
+                bool after = Terminal.m_cheat;
+                ValAgentBridgePlugin.ModLogger.LogInfo($"console/set_devcommands: {before} -> {after}{(before == on ? " (already so)" : "")}");
+                return new
+                {
+                    success = after == on,
+                    before,
+                    after,
+                    cheatsWork = Console.instance.IsCheatsEnabled(),
+                    error = after == on ? null : "devcommands did not change (a mod or the server may control it).",
                     output
                 };
             });
