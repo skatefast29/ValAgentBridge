@@ -194,6 +194,13 @@ namespace ValAgentBridge.Tools
                 result["steps"] = shown;
                 result["stepsNote"] = $"summary: {shown.Count} of {run.report.Count} steps shown (failed, or marked \"report\": true); every step is in reportFile, or run with detail \"full\"";
             }
+            else
+            {
+                // Every step, but long results only in full in reportFile.
+                result["steps"] = new JArray(run.report.OfType<JObject>()
+                    .Select(e => { var c = (JObject)e.DeepClone(); if (c["result"] != null) c["result"] = Shorten(c["result"], 3000); return c; }));
+                result["stepsNote"] = "step results over 3000 characters are cut here; reportFile has them in full";
+            }
             result["reportFile"] = reportFile;
             ValAgentBridgePlugin.ModLogger.LogInfo($"test/run '{name}': {(run.passed ? "PASSED" : "FAILED")} after {run.stepsRun} step(s), {run.failed} failed, {run.optionalFailed} optional failed");
             return result;
@@ -249,7 +256,7 @@ namespace ValAgentBridge.Tools
                     {
                         run.last = Call(step.Value<string>("call")!, Substitute(step["args"], run.vars));
                         entry["call"] = step["call"];
-                        entry["result"] = Shorten(run.last);
+                        entry["result"] = Shorten(run.last, FileMax);
                         if (run.last.Type == JTokenType.Object && run.last.Value<bool?>("success") == false && step.Value<bool?>("allowFail") != true)
                             failures.Add("tool failed: " + (run.last.Value<string>("error") ?? "no reason given"));
                     }
@@ -283,7 +290,7 @@ namespace ValAgentBridge.Tools
                             Thread.Sleep(TimeSpan.FromSeconds(every));
                         }
                         entry["waitedFor"] = until["call"];
-                        entry["result"] = Shorten(run.last);
+                        entry["result"] = Shorten(run.last, FileMax);
                     }
                     else if (step["screenshot"] != null)
                     {
@@ -414,8 +421,11 @@ namespace ValAgentBridge.Tools
             return path.Length == 0 ? root : root.SelectToken(path);
         }
 
-        // Big results (prefab lists etc.) would swamp the report.
-        private static JToken Shorten(JToken? t, int max = 3000)
+        // The report file keeps step results whole up to this size (a whole scene tree could be megabytes).
+        private const int FileMax = 200000;
+
+        // Big results (prefab lists etc.) would swamp the answer.
+        private static JToken Shorten(JToken? t, int max)
         {
             if (t == null) return JValue.CreateNull();
             var text = t.ToString(Formatting.None);

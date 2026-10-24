@@ -2,6 +2,12 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## Unreleased
+- `world/enter` checks that the character and world exist before logging out of the current world, so a wrong name
+  (without `create`) gives the error and leaves you where you were instead of at the main menu.
+- Test reports (`reportFile`) keep step results in full (up to 200,000 characters each) instead of cutting them at
+  3,000; only the answer shortens them. With `detail: "full"` the answer cuts results over 3,000 characters and says so.
+
 ## 1.8.0
 - New `player/interact_object`: use a crafting station, chest, portal, door, bed or ship's controls by instanceId,
   without aiming at it, and get back what opened (or the distance when too far, or what the game said).

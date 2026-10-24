@@ -171,6 +171,15 @@ namespace ValAgentBridge.Tools
                 if (sameChar && sameWorld)
                     return new { success = true, alreadyThere = true, s.character, s.world, seconds = Math.Round(clock.Elapsed.TotalSeconds, 1), askOwner = AskOwner() };
 
+                // Without create, a missing character or world would only show up after logging out: check first.
+                if (!create)
+                {
+                    string? missing;
+                    try { missing = MainThreadDispatcher.Run(() => FindSaves(character, world).error, 20000); }
+                    catch (Exception ex) { missing = "Couldn't read the save list: " + ex.GetBaseException().Message; }
+                    if (missing != null) return new { success = false, error = missing + " Still in " + s.world + "." };
+                }
+
                 ValAgentBridgePlugin.ModLogger.LogInfo($"world/enter: logging out of {s.world} ({s.character}) first");
                 var logout = MainThreadDispatcher.RunTool(() =>
                 {
@@ -323,6 +332,26 @@ namespace ValAgentBridge.Tools
             });
         }
 
+        /// <summary>Main thread. The saved character and world to load (empty = the last ones used), or why not.</summary>
+        private static (string? error, PlayerProfile? profile, World? world) FindSaves(string character, string world)
+        {
+            var profiles = SaveSystem.GetAllPlayerProfiles();
+            var wantChar = string.IsNullOrEmpty(character) ? PlatformPrefs.GetString("profile") : character;
+            var profile = profiles.FirstOrDefault(p => string.Equals(p.GetFilename(), wantChar, StringComparison.OrdinalIgnoreCase))
+                          ?? profiles.FirstOrDefault(p => string.Equals(p.GetName(), wantChar, StringComparison.OrdinalIgnoreCase));
+            if (profile == null)
+                return ($"No character '{wantChar}'. Have: {string.Join(", ", profiles.Select(p => p.GetName()))} (world/enter with create=true makes one).", null, null);
+
+            var worlds = SaveSystem.GetWorldList();
+            var wantWorld = string.IsNullOrEmpty(world) ? PlatformPrefs.GetString("world") : world;
+            var target = worlds.FirstOrDefault(w => string.Equals(w.m_name, wantWorld, StringComparison.OrdinalIgnoreCase));
+            if (target == null)
+                return ($"No world '{wantWorld}'. Have: {string.Join(", ", worlds.Select(w => w.m_name))} (world/enter with create=true makes one).", null, null);
+            if (target.m_dataError != World.SaveDataError.None)
+                return ($"World '{target.m_name}' has a save problem ({target.m_dataError}). Open it from the menu by hand.", null, null);
+            return (null, profile, target);
+        }
+
         /// <summary>Main thread. Starts loading through the menu's handlers.</summary>
         private static (bool ok, string? error, string? character, string? world) StartLoad(string character, string world)
         {
@@ -332,20 +361,8 @@ namespace ValAgentBridge.Tools
             if (StartingWorld(fs))
                 return (false, "A world is already loading.", null, null);
 
-            var profiles = SaveSystem.GetAllPlayerProfiles();
-            var wantChar = string.IsNullOrEmpty(character) ? PlatformPrefs.GetString("profile") : character;
-            var profile = profiles.FirstOrDefault(p => string.Equals(p.GetFilename(), wantChar, StringComparison.OrdinalIgnoreCase))
-                          ?? profiles.FirstOrDefault(p => string.Equals(p.GetName(), wantChar, StringComparison.OrdinalIgnoreCase));
-            if (profile == null)
-                return (false, $"No character '{wantChar}'. Have: {string.Join(", ", profiles.Select(p => p.GetName()))} (world/enter with create=true makes one).", null, null);
-
-            var worlds = SaveSystem.GetWorldList();
-            var wantWorld = string.IsNullOrEmpty(world) ? PlatformPrefs.GetString("world") : world;
-            var target = worlds.FirstOrDefault(w => string.Equals(w.m_name, wantWorld, StringComparison.OrdinalIgnoreCase));
-            if (target == null)
-                return (false, $"No world '{wantWorld}'. Have: {string.Join(", ", worlds.Select(w => w.m_name))} (world/enter with create=true makes one).", null, null);
-            if (target.m_dataError != World.SaveDataError.None)
-                return (false, $"World '{target.m_name}' has a save problem ({target.m_dataError}). Open it from the menu by hand.", null, null);
+            var (error, profile, target) = FindSaves(character, world);
+            if (error != null || profile == null || target == null) return (false, error, null, null);
 
             fs.OnStartGame();
             SetSelectedProfile(fs, profile.GetFilename());
