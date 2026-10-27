@@ -48,7 +48,7 @@ the reason. Ask the owner, then pass `force: true`. The bridge's own simulated k
 | `player/look_direction` | Turn player and camera to a compass `heading` (0 = north/+Z, 90 = east/+X) and `tilt` (up +, down -), e.g. to aim a screenshot |
 | `world/clear_hostiles` | **(cheat)** Remove creatures hostile to the player within `radius` (default 50 m), so a test isn't interrupted; the player is untouched. Never players or tamed animals; bosses only with `includeBosses` |
 | `world/keep_clear` | **(cheat)** Keep clearing them every few seconds for the rest of the session (`on`, `radius` 50, `every` 5 s, `includeBosses`). **Off by default**: `world/enter` reminds the agent to offer it to the owner until it has been set either way. Leave off for tests about hostile creatures and for performance measurements |
-| `player/set_protection` | `god` (no damage) and `ghost` (creatures ignore you), `true`/`false`; switched directly, so the character is not marked as having used cheats. Returns before/after. Not saved across restarts |
+| `player/set_protection` | `god` (no damage) and `ghost` (creatures ignore you), `true`/`false`; switched directly, so the character is not marked as having used cheats. Returns before/after. Fails (and leaves it off) when another mod keeps it off: Server Devcommands allows god/ghost only while devcommands are on, so use `world/keep_clear` there or ask the owner about `console/set_devcommands`. Not saved across restarts |
 | `player/teleport` | **(cheat)** Teleport to `x`, `z`, optional `y` (left out: lands on the ground, or on the water surface at sea); waits until done and returns where the player landed |
 | `input/press_key` | Press a key as if typed (`key`, e.g. F11, Escape, Alpha1; `modifiers` ctrl/shift/alt; `holdFrames`). Reaches game controls and mod hotkeys made with BepInEx (most mods), not mods that read `UnityEngine.Input` directly |
 | `player/jump`, `player/dodge`, `player/set_crouch` | Single inputs; `dodge` takes a world direction (`x` east, `z` north; default backward) |
@@ -80,7 +80,7 @@ the reason. Ask the owner, then pass `force: true`. The bridge's own simulated k
 | `world/find_locations` | Nearest generated places by (part of) name: trader `Vendor`, boss altars (`Eikthyrnir`, `GDKing`, ...), dungeons (`Crypt`, `SunkenCrypt`, `TrollCave`), `StartTemple`. No name = list the place types in this world |
 | `world/spawn_creature` | **(cheat)** Spawn `amount` creatures (`name`, `level` 1-3 stars+1, `distance`, `tamed`) in front of the player; returns instanceIds |
 | `world/spawn_object` | **(cheat)** Spawn any prefab (boats such as `Karve`, `VikingShip`, `Raft`; carts; rocks; ...) like the game's spawn command, at `x`/`z` or `forward`/`right` metres from the player (default 15 m ahead for boats, 3 m otherwise). Boats sit on the water surface facing the player's way (`heading` to choose); other things on the ground; `y` to set the height. Refuses a spot that overlaps a ship, or a boat on top of a player, unless `force`. Returns the instanceId. Building pieces: `player/place_piece` |
-| `world/remove_objects` | **(cheat)** Remove objects by instanceId (`ids`: `[123, 456]`; a JSON string of the array also works), e.g. creatures spawned for a test |
+| `world/remove_objects` | **(cheat)** Remove objects by instanceId (`ids` or `instanceIds`: `[123, 456]`; a JSON string of the array also works), e.g. creatures spawned for a test |
 | `env/status` | Hour, day, current weather, whether time/weather are pinned, weather names |
 | `env/set_time` | **(cheat)** Jump forward to an `hour` (0-24) like sleeping, or `pin` it there for repeatable tests; `hour` -1 releases a pinned time |
 | `env/set_weather` | **(cheat)** Force a weather by name (`env/status` lists them); empty = normal weather |
@@ -116,7 +116,8 @@ the reason. Ask the owner, then pass `force: true`. The bridge's own simulated k
 | `debug/set_active` | **(cheat)** Switch a Unity object on or off (`instanceId`, or a `path` that matches only one object), with its children, e.g. to see whether a problem or a frame-time cost goes away. Not saved; a world object comes back when reloaded. Refuses the player and the bridge's own objects; returns `before` so it can be switched back |
 | `debug/set_value` | **(cheat)** Change a live field or property by path |
 | `debug/call_method` | **(cheat)** Run a method on a type or on the object at a path, args as a JSON array (a Vector3 as `[x, y, z]` or `"x,y,z"`) |
-| `debug/watch_start`, `debug/watch_list`, `debug/watch_read`, `debug/watch_stop` | Patch a method at runtime: count every call and record the arguments, result and exceptions of the first N. Mono inlines tiny methods (under ~20 bytes of IL); a watch on one may not see every call, and the start answer warns about it |
+| `test/wait_until` | Wait inside the game until a tool's answer passes checks, without a test script: `call` (e.g. `perf/status`), `until` (checks as in test scripts, e.g. `[{"path":"secondsCounted","greaterThan":60}]`), `args`, `timeout` (60 s, up to 1800), `every` (2 s). `call` `"in_world"` / `"main_menu"` waits for that phase. Give GABS a longer `timeout` |
+| `debug/watch_start`, `debug/watch_list`, `debug/watch_read`, `debug/watch_stop` | Patch a method at runtime: count every call and record the arguments, result and exceptions of the first N. Mono inlines tiny methods (under ~20 bytes of IL); a watch on one may not see every call, and the start answer warns about it. `debug/watch_read` and `debug/watch_stop` with `id` 0 (or none) cover every watch |
 
 ## Test scripts
 
@@ -146,6 +147,8 @@ latest results.
 - Top-level `"keepClear": 50` (or `{ "radius": 50, "every": 10 }`) clears them again every 10 s during the run; the
   answer counts how many (`hostilesClearedDuringRun`). Off by default: avoid it in performance measurements.
 - Top-level `"protect": true` turns on god and ghost mode for the run and puts them back as they were afterwards.
+  If another mod keeps them off (Server Devcommands without devcommands), the run goes on unprotected and the
+  answer says so in `protectionProblem`.
 - `"waitUntil": "in_world"` (or `"main_menu"`, `"loading"`) is short for waiting on `world/status`'s phase.
 - An unknown tool name fails the step and lists the closest names.
 - A tool answering `success: false` fails the step unless the step has `"allowFail": true`.

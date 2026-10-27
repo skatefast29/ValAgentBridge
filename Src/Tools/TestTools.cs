@@ -52,6 +52,48 @@ namespace ValAgentBridge.Tools
             return Execute(parsed, Path.GetFileNameWithoutExtension(path), detail);
         }
 
+        [Tool("test/wait_until", Description = "Wait inside the game until a tool's answer passes checks, without writing a test script: calls the tool every few seconds until every check holds or the timeout runs out (e.g. call perf/status, until [{\"path\":\"secondsCounted\",\"greaterThan\":60}]). Checks work as in test scripts (equals / notEquals / contains / greaterThan / lessThan / exists). call \"in_world\" or \"main_menu\" waits for that world/status phase. Give GABS a timeout longer than this one.")]
+        public object WaitUntil(
+            [ToolParameter(Description = "The tool to ask (e.g. perf/status), or \"in_world\" / \"main_menu\"")] string call,
+            [ToolParameter(Description = "Checks on its answer: [{\"path\":\"done\",\"equals\":true}] (one check object, or the same as a JSON string, also works); leave out for a phase")] object? until = null,
+            [ToolParameter(Description = "Arguments for the tool (optional)")] object? args = null,
+            [ToolParameter(Description = "Seconds to wait at most (default 60, up to 1800)")] double timeout = 60,
+            [ToolParameter(Description = "Seconds between calls (default 2)")] double every = 2)
+        {
+            JToken? checks, callArgs;
+            try { checks = AsToken(until); callArgs = AsToken(args); }
+            catch (Exception ex) { return new { success = false, error = "until or args is not valid JSON: " + ex.Message }; }
+            if (call == "in_world" || call == "main_menu" || call == "loading")
+            {
+                checks = new JArray(new JObject { ["path"] = "phase", ["equals"] = call });
+                call = "world/status";
+            }
+            else if (checks == null) return new { success = false, error = "until needs at least one check, e.g. [{\"path\":\"done\",\"equals\":true}]." };
+            timeout = Clamp(timeout, 1, 1800);
+            every = Clamp(every, 0.2, 60);
+            var clock = Stopwatch.StartNew();
+            JToken last;
+            List<string> failing;
+            try
+            {
+                while (true)
+                {
+                    last = Call(call, callArgs);
+                    failing = Check(last, checks);
+                    if (failing.Count == 0 || clock.Elapsed.TotalSeconds >= timeout) break;
+                    Thread.Sleep(TimeSpan.FromSeconds(every));
+                }
+            }
+            catch (Exception ex) { return new { success = false, error = ex.GetBaseException().Message }; }
+            var seconds = Math.Round(clock.Elapsed.TotalSeconds, 1);
+            return failing.Count == 0
+                ? (object)new { success = true, met = true, seconds, result = Shorten(last, 3000) }
+                : new { success = false, met = false, seconds, error = $"waited {timeout}s: " + string.Join("; ", failing), result = Shorten(last, 3000) };
+        }
+
+        private static JToken? AsToken(object? value) => value == null ? null
+            : value as JToken ?? (value is string s ? (s.Trim().Length == 0 ? null : JToken.Parse(s)) : JToken.FromObject(value));
+
         /// <summary>A test script shipped inside the DLL (tests\*.json at build time), or null.</summary>
         private static string? BuiltIn(string file)
         {
@@ -129,10 +171,17 @@ namespace ValAgentBridge.Tools
             }
             // "protect": true keeps the player safe for the run (no damage, creatures ignore them), then restores.
             JToken? protectedBefore = null;
+            string? protectProblem = null;
             if (script.Value<bool?>("protect") == true)
             {
                 var on = Call("player/set_protection", new JObject { ["god"] = "true", ["ghost"] = "true" });
                 if (on.Value<bool?>("success") == true) protectedBefore = on["before"];
+                else
+                {
+                    // The run goes on unprotected; the answer says so at the top.
+                    protectProblem = "protect: " + (on.Value<string>("error") ?? "could not switch protection on") + " The run went on without it.";
+                    ValAgentBridgePlugin.ModLogger.LogWarning($"test/run '{name}': {protectProblem}");
+                }
             }
 
             long logMark = Recorder.LastLogSeq, msgMark = Recorder.LastMessageSeq, eventMark = Recorder.LastEventSeq;
@@ -164,6 +213,7 @@ namespace ValAgentBridge.Tools
                 ["optionalFailed"] = run.optionalFailed,
                 ["stepsInScript"] = steps.Count,
                 ["hostilesClearedDuringRun"] = keepClear != null ? clearedDuringRun : (JToken?)null,
+                ["protectionProblem"] = protectProblem,
                 ["seconds"] = Math.Round(clock.Elapsed.TotalSeconds, 1),
                 ["steps"] = run.report,
                 ["warningsAndErrors"] = JToken.FromObject(Recorder.LogSince(logMark, "warning", "", 200)),

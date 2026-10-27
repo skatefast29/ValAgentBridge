@@ -11,6 +11,13 @@
     { "call": "player/look_at_object", "args": { "instanceId": 0 }, "optional": true },
     { "call": "world/remove_objects", "args": { "ids": "[0]" }, "expect": [ { "path": "notFound", "equals": 1 } ] },
     { "call": "world/remove_objects", "args": { "ids": [0, 1] }, "expect": [ { "path": "notFound", "equals": 2 } ] },
+    { "call": "world/remove_objects", "args": { "instanceIds": [0, 1, 2] }, "expect": [ { "path": "notFound", "equals": 3 } ] },
+    { "call": "world/remove_objects", "args": {}, "allowFail": true, "expect": [ { "path": "success", "equals": false } ] },
+    { "call": "debug/watch_start", "args": { "type": "Player", "method": "GetPlayerID", "keep": 2 }, "saveAs": "w" },
+    { "wait": 1 },
+    { "call": "debug/watch_read", "args": { "id": 0 }, "expect": [ { "path": "count", "greaterThan": 0 }, { "path": "watches[0].method", "exists": true } ] },
+    { "call": "debug/watch_read", "args": { "id": "${w.watches[0].id}" }, "expect": [ { "path": "method", "exists": true } ] },
+    { "call": "debug/watch_stop", "args": { "id": "${w.watches[0].id}" } },
     { "call": "player/get_position", "report": true }
   ]
 }

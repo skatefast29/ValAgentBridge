@@ -112,20 +112,32 @@ namespace ValAgentBridge.Tools
             return new { success = true, count = list.Count, watches = list };
         }
 
-        [Tool("debug/watch_read", Description = "The recorded calls of a watch (arguments, return value, exceptions, seconds since the watch started).")]
+        [Tool("debug/watch_read", Description = "The recorded calls of a watch (arguments, return value, exceptions, seconds since the watch started), or of every watch with id 0 (as debug/watch_stop).")]
         public object Read(
-            [ToolParameter(Description = "Watch id from debug/watch_start or debug/watch_list")] int id,
+            [ToolParameter(Description = "Watch id from debug/watch_start or debug/watch_list, or 0 for all (default)")] int id = 0,
             [ToolParameter(Description = "Only calls after this call number (default 0)")] long since = 0,
             [ToolParameter(Description = "true = clear the recording afterwards so the next N calls get recorded")] bool clear = false)
         {
-            var w = ByMethod.Values.FirstOrDefault(x => x.id == id);
-            if (w == null) return new { success = false, error = $"No watch #{id}. Use debug/watch_list." };
-            lock (w)
+            object ReadOne(Watch w, bool withSuccess)
             {
-                var calls = w.recorded.Where(c => c.n > since).ToList();
-                if (clear) w.recorded.Clear();
-                return new { success = true, id, method = w.label, totalCalls = w.calls, exceptions = w.exceptions, calls };
+                lock (w)
+                {
+                    var calls = w.recorded.Where(c => c.n > since).ToList();
+                    if (clear) w.recorded.Clear();
+                    return withSuccess
+                        ? (object)new { success = true, id = w.id, method = w.label, totalCalls = w.calls, exceptions = w.exceptions, calls }
+                        : new { id = w.id, method = w.label, totalCalls = w.calls, exceptions = w.exceptions, calls };
+                }
             }
+            if (id == 0)
+            {
+                var all = ByMethod.Values.OrderBy(x => x.id).ToList();
+                if (all.Count == 0) return new { success = false, error = "No watches running. Start one with debug/watch_start." };
+                return new { success = true, count = all.Count, watches = all.Select(x => ReadOne(x, false)).ToList() };
+            }
+            var w = ByMethod.Values.FirstOrDefault(x => x.id == id);
+            if (w == null) return new { success = false, error = $"No watch #{id}. Use debug/watch_list (or id 0 for all)." };
+            return ReadOne(w, true);
         }
 
         [Tool("debug/watch_stop", Description = "Stop a watch (removes its patch), or all watches with id 0.")]

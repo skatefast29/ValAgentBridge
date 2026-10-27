@@ -2,6 +2,15 @@
 
 Fork of [jneb802/ValBridgeServer](https://github.com/jneb802/ValBridgeServer) at commit `eb0fe1b` (2026-02-22).
 
+## 1.8.2
+- Fixed: `player/set_protection` answered success while god and ghost mode stayed off. With Server Devcommands
+  installed they only work while devcommands are on; the tool now fails with that reason (and leaves them off),
+  and a test script with `"protect": true` says so in `protectionProblem` instead of running unprotected silently.
+- New `test/wait_until`: wait inside the game until a tool's answer passes checks (e.g. a recording has 60 s),
+  without writing a one-step test script.
+- `debug/watch_read` with `id` 0 (or none) reads every watch, as `debug/watch_stop` already did.
+- `world/remove_objects` also takes `instanceIds`, the name `world/spawn_creature` answers with; no ids is an error.
+
 ## 1.8.1
 - `world/enter` checks that the character and world exist before logging out of the current world, so a wrong name
   (without `create`) gives the error and leaves you where you were instead of at the main menu.

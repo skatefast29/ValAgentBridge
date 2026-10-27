@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using BepInEx.Bootstrap;
 using HarmonyLib;
 using Lib.GAB.Tools;
 using UnityEngine;
@@ -252,7 +253,7 @@ namespace ValAgentBridge.Tools
             return (total, removed, bossesLeft);
         }
 
-        [Tool("player/set_protection", Description = "Keep the player safe while a test runs: god = takes no damage, ghost = creatures ignore the player. Switched directly, not through the console, so the character is not marked as having used cheats. Leave an argument out to keep it as it is; returns the state before and after. Not saved: both are off again after a restart.")]
+        [Tool("player/set_protection", Description = "Keep the player safe while a test runs: god = takes no damage, ghost = creatures ignore the player. Switched directly, not through the console, so the character is not marked as having used cheats. Leave an argument out to keep it as it is; returns the state before and after. Fails when another mod keeps it off (Server Devcommands allows god/ghost only while devcommands are on); world/keep_clear works without. Not saved: both are off again after a restart.")]
         public object SetProtection(
             [ToolParameter(Description = "No damage (true/false; leave out to keep)")] string god = "",
             [ToolParameter(Description = "Creatures ignore the player (true/false; leave out to keep)")] string ghost = "")
@@ -268,6 +269,19 @@ namespace ValAgentBridge.Tools
                 if (wantGod.HasValue) player.SetGodMode(wantGod.Value);
                 if (wantGhost.HasValue) player.SetGhostMode(wantGhost.Value);
                 var after = new { god = player.InGodMode(), ghost = player.InGhostMode() };
+                // Another mod can override InGodMode/InGhostMode (Server Devcommands: only while devcommands are on).
+                // Then the switch didn't take: clear the flag again so it doesn't start working later by surprise.
+                var ignored = new List<string>();
+                if (wantGod == true && !after.god) { player.SetGodMode(false); ignored.Add("god"); }
+                if (wantGhost == true && !after.ghost) { player.SetGhostMode(false); ignored.Add("ghost"); }
+                if (ignored.Count > 0)
+                {
+                    string why = Chainloader.PluginInfos.ContainsKey("server_devcommands")
+                        ? "Server Devcommands allows god and ghost only while devcommands are on (console/set_devcommands on=true; ask the owner first)"
+                        : "another mod keeps it off";
+                    Log($"player/set_protection: {string.Join(" and ", ignored)} stayed off: {why}");
+                    return (object)new { success = false, error = $"{string.Join(" and ", ignored)} mode stayed off: {why}. world/keep_clear keeps creatures away without it.", before, after };
+                }
                 if (wantGod.HasValue || wantGhost.HasValue) Log($"player/set_protection: god {after.god}, ghost {after.ghost}");
                 return new { success = true, before, after };
             });
@@ -355,11 +369,13 @@ namespace ValAgentBridge.Tools
 
         [Tool("world/remove_objects", Description = "(cheat) Remove objects from the world by instanceId (creatures spawned for a test, dropped items, ...). Never removes the player.")]
         public object RemoveObjects(
-            [ToolParameter(Description = "instanceIds, e.g. [123, 456] (the same as a JSON string also works)")] int[] ids)
+            [ToolParameter(Description = "instanceIds, e.g. [123, 456] (the same as a JSON string also works)")] int[]? ids = null,
+            [ToolParameter(Description = "The same as ids (the name world/spawn_creature answers with)")] int[]? instanceIds = null)
         {
+            var list = (ids ?? new int[0]).Concat(instanceIds ?? new int[0]).Distinct().ToList();
+            if (list.Count == 0) return new { success = false, error = "world/remove_objects needs ids, e.g. [123, 456]." };
             return MainThreadDispatcher.RunTool(() =>
             {
-                var list = (ids ?? new int[0]).ToList();
                 var wanted = new HashSet<int>(list);
                 int removed = 0;
                 foreach (var view in UnityEngine.Object.FindObjectsByType<ZNetView>(FindObjectsSortMode.None))
